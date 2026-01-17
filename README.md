@@ -7,6 +7,14 @@
 
 它的核心功能是将 ESP32-S3 模拟为一个 **原生Nintendo Switch Pro 有线手柄**，同时监听 **UART 串口**。它可以接收来自 PC 端的操作指令，并将其实时转化为 Switch 识别的 HID 信号。
 
+## 🏗️ 系统架构
+
+```mermaid
+graph LR
+    PC[电脑 / 树莓派] -- USB-TTL (串口指令) --> ESP32[ESP32-S3 转换器]
+    ESP32 -- USB HID (手柄信号) --> Switch[Switch 主机]
+```
+
 ## ✨ 功能特性 (Features)
 
 *   **📡 USB HID**: 适用于 ESP32-S3 (需配合 [SwitchProControllerLibrary](https://github.com/churunfa/SwitchProControllerLibrary) 项目)，实现低延迟有线连接。
@@ -64,4 +72,5 @@ monitor_filters = esp32_exception_decoder
 [GP2040-CE](https://github.com/OpenStickCommunity/GP2040-CE)
 
 [Adafruit_TinyUSB_Arduino](https://github.com/adafruit/Adafruit_TinyUSB_Arduino)
+
 
