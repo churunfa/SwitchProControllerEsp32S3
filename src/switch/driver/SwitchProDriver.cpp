@@ -106,7 +106,7 @@ void SwitchProDriver::resetSwitchReport() {
     };
 }
 
-bool SwitchProDriver::process() {
+bool SwitchProDriver::process(const bool force) {
     const uint32_t now = millis();
     const uint32_t next_report_time = last_report_timer + SWITCH_PRO_KEEPALIVE_TIMER;
     // Wake up TinyUSB device
@@ -127,7 +127,7 @@ bool SwitchProDriver::process() {
     }
     // serialInput.
 
-    if (now < next_report_time) {
+    if (now < next_report_time && !force) {
         return false;
     }
 
@@ -145,7 +145,7 @@ bool SwitchProDriver::process() {
 
     if (isReady) {
         switchReport.timestamp = last_report_counter;
-        void * inputReport = &switchReport;
+        const void * inputReport = &switchReport;
         uint16_t report_size = sizeof(switchReport);
         if (memcmp(last_report, inputReport, report_size) != 0) {
             // HID ready + report sent, copy previous report
@@ -504,9 +504,23 @@ void SwitchProDriver::readSPIFlash(uint8_t* dest, uint32_t address, uint8_t size
     }
 }
 
-void SwitchProDriver::updateInputReport(SwitchProSerialInput* serialInput) {
-    memcpy(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport));
-    memcpy(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog));
-    memcpy(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog));
-    memcpy(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3);
+bool SwitchProDriver::updateInputReport(SwitchProSerialInput* serialInput) {
+    bool update = false;
+    if (!memcmp(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport))) {
+        memcpy(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport));
+        update = true;
+    }
+    if (!memcmp(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog))) {
+        memcpy(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog));
+        update = true;
+    }
+    if (!memcmp(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog))) {
+        memcpy(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog));
+        update = true;
+    }
+    if (!memcmp(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3)) {
+        memcpy(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3);
+        update = true;
+    }
+    return update;
 }

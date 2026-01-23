@@ -66,12 +66,15 @@ void loop() {
                 return;
             }
             // 读完数据了，更新输入
-            switchProDriver.updateInputReport(&serialInput);
+            if (switchProDriver.updateInputReport(&serialInput)) {
+                // 如果有更新，立刻发送一次数据
+                switchProDriver.process(true);
+            }
             // 重置index
             headerIndex = 0;
             readyIndex = 0;
         }
     }
 
-    switchProDriver.process();
+    switchProDriver.process(false);
 }

@@ -29,11 +29,11 @@ public:
 
     virtual ~SwitchProDriver() = default;
 
-    virtual bool process();
+    virtual bool process(bool force);
     virtual void initialize();
     virtual void set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize);
     virtual void resetSwitchReport();
-    virtual void updateInputReport(SwitchProSerialInput* serialInput);
+    virtual bool updateInputReport(SwitchProSerialInput* serialInput);
 
 private:
     uint8_t report[SWITCH_PRO_ENDPOINT_SIZE] = { };
