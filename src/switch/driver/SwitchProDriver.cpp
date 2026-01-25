@@ -98,8 +98,8 @@ void SwitchProDriver::resetSwitchReport() {
             .buttonL = 0,
             .buttonZL = 0,
         },
-        .leftStick = {0x00, 0x80, 0x08}, // 2048, 2048
-        .rightStick =  {0x00, 0x80, 0x08}, // 2048, 2048
+        .leftStick = {0x00, 0x08, 0x80}, // 2048, 2048
+        .rightStick =  {0x00, 0x08, 0x80}, // 2048, 2048
         .rumbleReport = 0x09,
         .imuData = {{0, 0, -4096, 0, 0, 0}, {0, 0, -4096, 0, 0, 0}, {0, 0, -4096, 0, 0, 0}},
         .padding = {0x00}
@@ -506,19 +506,19 @@ void SwitchProDriver::readSPIFlash(uint8_t* dest, uint32_t address, uint8_t size
 
 bool SwitchProDriver::updateInputReport(SwitchProSerialInput* serialInput) {
     bool update = false;
-    if (!memcmp(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport))) {
+    if (memcmp(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport)) != 0) {
         memcpy(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport));
         update = true;
     }
-    if (!memcmp(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog))) {
+    if (memcmp(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog)) != 0) {
         memcpy(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog));
         update = true;
     }
-    if (!memcmp(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog))) {
+    if (memcmp(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog)) != 0) {
         memcpy(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog));
         update = true;
     }
-    if (!memcmp(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3)) {
+    if (memcmp(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3) != 0) {
         memcpy(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3);
         update = true;
     }
