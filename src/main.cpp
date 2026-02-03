@@ -20,14 +20,18 @@ uint8_t header[] = {0xAA, 0x55};
 // 2 读数据
 uint8_t headerIndex = 0;
 
-void setSerialInput(const uint8_t index, const uint8_t byte) {
-    reinterpret_cast<uint8_t *>(&serialInput)[index] = byte;
+uint8_t delayTestHeader[] = {0xBB, 0x66};
+uint8_t delayTest[64] = {};
+uint8_t delayHeaderIndex = 0;
+
+void setSerialInput(uint8_t * arr, const uint8_t index, const uint8_t byte) {
+    arr[index] = byte;
 }
 
-bool verifyCheckSum(const uint8_t checkSum) {
+bool verifyCheckSum(const uint8_t * arr, const uint8_t checkSum) {
     uint8_t xorResult = 0;
     for (uint8_t i = 0; i < readSize; i++) {
-        xorResult ^= reinterpret_cast<uint8_t *>(&serialInput)[i];
+        xorResult ^= arr[i];
     }
     return xorResult == checkSum;
 }
@@ -39,7 +43,7 @@ bool btn = false;
 void loop() {
     if (Serial0.available() > 0) {
         const uint8_t inByte = Serial0.read();
-        if (headerIndex < 2) {
+        if (delayHeaderIndex == 0 && headerIndex < 2) {
             if (inByte == header[headerIndex]) {
                 // 如果匹配上，继续匹配下一个
                 headerIndex++;
@@ -50,15 +54,36 @@ void loop() {
             headerIndex = 0;
             return;
         }
+        if (delayHeaderIndex < 2 && headerIndex == 0) {
+            if (inByte == header[delayHeaderIndex]) {
+                // 如果匹配上，继续匹配下一个
+                delayHeaderIndex++;
+                return;
+            }
+            showRedLed();
+            // 如果匹配不上，需要从头匹配
+            delayHeaderIndex = 0;
+            return;
+        }
 
         if (readyIndex < readSize) {
             // 还没读完，继续读
-            setSerialInput(readyIndex++, inByte);
+            if (delayHeaderIndex > 0) {
+                setSerialInput(delayTest, readyIndex++, inByte);
+            } else {
+                setSerialInput(reinterpret_cast<uint8_t *>(&serialInput), readyIndex++, inByte);
+            }
             return;
         }
         if (readyIndex == readSize) {
+            uint8_t * arr = nullptr;
+            if (delayHeaderIndex > 0) {
+                arr = delayTest;
+            } else {
+                arr = reinterpret_cast<uint8_t *>(&serialInput);
+            }
             // 检查校验和
-            if (!verifyCheckSum(inByte)) {
+            if (!verifyCheckSum(arr, inByte)) {
                 // 校验和不合法，重新找header
                 headerIndex = 0;
                 readyIndex = 0;
@@ -70,9 +95,13 @@ void loop() {
                 // 如果有更新，立刻发送一次数据
                 switchProDriver.process(true);
             }
+            if (delayHeaderIndex > 0) {
+                Serial0.write(delayTest, 64);
+            }
             // 重置index
             headerIndex = 0;
             readyIndex = 0;
+            delayHeaderIndex = 0;
         }
     }
 
