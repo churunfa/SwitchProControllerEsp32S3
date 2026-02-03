@@ -43,31 +43,26 @@ bool btn = false;
 void loop() {
     if (Serial0.available() > 0) {
         const uint8_t inByte = Serial0.read();
-        // 匹配测试数据
         if (delayHeaderIndex == 0 && headerIndex < 2) {
             if (inByte == header[headerIndex]) {
                 // 如果匹配上，继续匹配下一个
                 headerIndex++;
                 return;
             }
-            if (headerIndex > 0) {
-                showRedLed();
-                // 如果匹配不上，需要从头匹配
-                headerIndex = 0;
-            }
+            showRedLed();
+            // 如果匹配不上，需要从头匹配
+            headerIndex = 0;
+            return;
         }
-        // 匹配操作数据
         if (delayHeaderIndex < 2 && headerIndex == 0) {
             if (inByte == header[delayHeaderIndex]) {
                 // 如果匹配上，继续匹配下一个
                 delayHeaderIndex++;
                 return;
             }
-            if (delayHeaderIndex > 0) {
-                showBlueLed();
-                // 如果匹配不上，需要从头匹配
-                delayHeaderIndex = 0;
-            }
+            showRedLed();
+            // 如果匹配不上，需要从头匹配
+            delayHeaderIndex = 0;
             return;
         }
 
@@ -81,7 +76,7 @@ void loop() {
             return;
         }
         if (readyIndex == readSize) {
-            const uint8_t * arr = nullptr;
+            uint8_t * arr = nullptr;
             if (delayHeaderIndex > 0) {
                 arr = delayTest;
             } else {
@@ -91,19 +86,17 @@ void loop() {
             if (!verifyCheckSum(arr, inByte)) {
                 // 校验和不合法，重新找header
                 headerIndex = 0;
-                delayHeaderIndex = 0;
                 readyIndex = 0;
                 showYellowLed();
                 return;
             }
+            // 读完数据了，更新输入
+            if (switchProDriver.updateInputReport(&serialInput)) {
+                // 如果有更新，立刻发送一次数据
+                switchProDriver.process(true);
+            }
             if (delayHeaderIndex > 0) {
                 Serial0.write(delayTest, 64);
-            } else {
-                // 读完数据了，更新输入
-                if (switchProDriver.updateInputReport(&serialInput)) {
-                    // 如果有更新，立刻发送一次数据
-                    switchProDriver.process(true);
-                }
             }
             // 重置index
             headerIndex = 0;
