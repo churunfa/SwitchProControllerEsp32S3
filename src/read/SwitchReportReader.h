@@ -9,7 +9,6 @@
 
 class SwitchReportReader : public ReadStrategy {
     SwitchProSerialInput serialInput = {};
-    uint8_t readSize = sizeof(SwitchProSerialInput);
     uint8_t readIndex = 0;
 
     void setSerialInput(const uint8_t index, const uint8_t byte) {
@@ -35,7 +34,7 @@ public:
     }
 
     int8_t length() override {
-        return readSize;
+        return sizeof(SwitchProSerialInput);
     }
 };
 #endif //SWITCHPROCONTROLLERESP32S3_SWITCHREPORTREADER_H
