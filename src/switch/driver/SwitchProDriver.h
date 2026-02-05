@@ -25,7 +25,6 @@ typedef struct __attribute((packed, aligned(1))) {
 
 class SwitchProDriver {
 public:
-    SwitchProDriver();
 
     virtual ~SwitchProDriver() = default;
 
@@ -34,6 +33,7 @@ public:
     virtual void set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize);
     virtual void resetSwitchReport();
     virtual bool updateInputReport(SwitchProSerialInput* serialInput);
+    static SwitchProDriver& getInstance();
 
 private:
     uint8_t report[SWITCH_PRO_ENDPOINT_SIZE] = { };
@@ -41,13 +41,13 @@ private:
     SwitchProReport switchReport{};
     uint8_t last_report_counter{};
     uint32_t last_report_timer{};
+    bool is_init = false;
     bool isReady = false;
     bool isInitialized = false;
     bool isReportQueued = false;
     uint8_t queuedReportID = 0;
 
     uint8_t handshakeCounter = 0;
-    static SwitchProDriver* instance;
     std::mutex reportMtx;
 
 
@@ -66,6 +66,7 @@ private:
     std::mt19937 gen;       // 梅森旋转算法生成器
     std::uniform_int_distribution<uint8_t> dist;
 
+    SwitchProDriver();
     void sendIdentify();
     void sendSubCommand(uint8_t subCommand);
 
@@ -180,5 +181,13 @@ private:
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
     };
 };
+
+inline SwitchProDriver& SwitchProDriver::getInstance() {
+    static SwitchProDriver instance;
+    if (!instance.is_init) {
+        instance.initialize();
+    }
+    return instance;
+}
 
 #endif

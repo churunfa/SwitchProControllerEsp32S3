@@ -3,15 +3,11 @@
 #include "driverhelper.h"
 #include "debug/log.h"
 
-// 初始化静态成员
-SwitchProDriver* SwitchProDriver::instance = nullptr;
-
 SwitchProDriver::SwitchProDriver() : gen(rd()), dist(0, 0xFF) {
     // 设置实例指针
     usb_hid = Adafruit_USBD_HID(switch_pro_report_descriptor,
               sizeof(switch_pro_report_descriptor),
               HID_ITF_PROTOCOL_NONE, 2, true);
-    instance = this;
 }
 
 void SwitchProDriver::initialize() {
@@ -58,6 +54,7 @@ void SwitchProDriver::initialize() {
 
     last_report_timer = millis();
     resetSwitchReport();
+    is_init = true;
 }
 
 void SwitchProDriver::resetSwitchReport() {
@@ -482,16 +479,15 @@ void SwitchProDriver::set_report(uint8_t report_id, hid_report_type_t report_typ
 }
 
 void SwitchProDriver::set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
-    instance -> set_report(report_id, report_type, buffer, bufsize);
+    getInstance().set_report(report_id, report_type, buffer, bufsize);
 }
 
 void SwitchProDriver::readSPIFlash(uint8_t* dest, uint32_t address, uint8_t size) {
     uint32_t addressBank = address & 0xFFFFFF00;
     uint32_t addressOffset = address & 0x000000FF;
     // logSamplingPrintf("Address: %08x, Bank: %04x, Offset: %04x, Size: %d\n", address, addressBank, addressOffset, size);
-    std::map<uint32_t, const uint8_t*>::iterator it = spiFlashData.find(addressBank);
 
-    if (it != spiFlashData.end()) {
+    if (const auto it = spiFlashData.find(addressBank); it != spiFlashData.end()) {
         // address found
         const uint8_t* data = it->second;
         memcpy(dest, data+addressOffset, size);

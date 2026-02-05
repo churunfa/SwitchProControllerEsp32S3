@@ -5,27 +5,41 @@
 
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN_RGB, NEO_GRB + NEO_KHZ800);
 
+uint32_t lastColor = -1;
+
 void setupLeds() {
     pixels.begin();
-    pixels.setBrightness(50); // 建议设置亮度，防止过亮
+    pixels.setBrightness(5);
 }
 void showRedLed() {
-    pixels.setPixelColor(0, Adafruit_NeoPixel::Color(64, 0, 0)); // 红色
-    pixels.show();
+    if (const uint32_t newColor = Adafruit_NeoPixel::Color(64, 0, 0); lastColor != newColor) {
+        pixels.setPixelColor(0, newColor);
+        pixels.show();
+        lastColor = newColor;
+    }
 }
 
 
 void showYellowLed() {
-    pixels.setPixelColor(0, Adafruit_NeoPixel::Color(64, 64, 0)); // 黄色
-    pixels.show();
+    if (const uint32_t newColor = Adafruit_NeoPixel::Color(64, 64, 0); lastColor != newColor) {
+        pixels.setPixelColor(0, newColor);
+        pixels.show();
+        lastColor = newColor;
+    }
 }
 
 void showBlueLed() {
-    pixels.setPixelColor(0, Adafruit_NeoPixel::Color(0, 0, 64)); // 蓝色
-    pixels.show();
+    if (const uint32_t newColor = Adafruit_NeoPixel::Color(0, 0, 64); lastColor != newColor) {
+        pixels.setPixelColor(0, newColor);
+        pixels.show();
+        lastColor = newColor;
+    }
 }
 
 void resetLed() {
-    pixels.setPixelColor(0, Adafruit_NeoPixel::Color(0, 0, 0));
-    pixels.show();
+    if (const uint32_t newColor = Adafruit_NeoPixel::Color(0, 0, 0); lastColor != newColor) {
+        pixels.setPixelColor(0, newColor);
+        pixels.show();
+        lastColor = newColor;
+    }
 }
