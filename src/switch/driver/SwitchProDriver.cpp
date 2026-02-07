@@ -143,8 +143,7 @@ bool SwitchProDriver::process(const bool force) {
     if (isReady) {
         switchReport.timestamp = last_report_counter;
         const void * inputReport = &switchReport;
-        uint16_t report_size = sizeof(switchReport);
-        if (memcmp(last_report, inputReport, report_size) != 0) {
+        if (constexpr uint16_t report_size = sizeof(switchReport); memcmp(last_report, inputReport, report_size) != 0) {
             // HID ready + report sent, copy previous report
             if (tud_hid_ready() && sendReport(0, inputReport, true) == true) {
                 memcpy(last_report, inputReport, report_size);
@@ -168,11 +167,7 @@ void SwitchProDriver::sendIdentify() {
     }
 }
 
-void SwitchProDriver::sendSubCommand(uint8_t subCommand) {
-
-}
-
-bool SwitchProDriver::sendReport(uint8_t reportID, void const* reportData, bool addCount) {
+bool SwitchProDriver::sendReport(const uint8_t reportID, void const* reportData, const bool addCount) {
     std::lock_guard lock(reportMtx);
 
     // logSamplingPrintf("SwitchProDriver::sendReport:[");

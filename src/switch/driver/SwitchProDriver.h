@@ -68,7 +68,6 @@ private:
 
     SwitchProDriver();
     void sendIdentify();
-    void sendSubCommand(uint8_t subCommand);
 
     bool sendReport(uint8_t reportID, const void* reportData, bool addCount);
 
