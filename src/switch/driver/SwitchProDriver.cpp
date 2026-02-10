@@ -473,13 +473,13 @@ void SwitchProDriver::set_report(uint8_t report_id, hid_report_type_t report_typ
     }
 }
 
-void SwitchProDriver::set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
+void SwitchProDriver::set_report_callback(const uint8_t report_id, const hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize) {
     getInstance().set_report(report_id, report_type, buffer, bufsize);
 }
 
-void SwitchProDriver::readSPIFlash(uint8_t* dest, uint32_t address, uint8_t size) {
-    uint32_t addressBank = address & 0xFFFFFF00;
-    uint32_t addressOffset = address & 0x000000FF;
+void SwitchProDriver::readSPIFlash(uint8_t* dest, const uint32_t address, const uint8_t size) {
+    const uint32_t addressBank = address & 0xFFFFFF00;
+    const uint32_t addressOffset = address & 0x000000FF;
     // logSamplingPrintf("Address: %08x, Bank: %04x, Offset: %04x, Size: %d\n", address, addressBank, addressOffset, size);
 
     if (const auto it = spiFlashData.find(addressBank); it != spiFlashData.end()) {
