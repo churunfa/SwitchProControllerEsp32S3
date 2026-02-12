@@ -98,7 +98,7 @@ void SwitchProDriver::resetSwitchReport() {
         .leftStick = {0x00, 0x08, 0x80}, // 2048, 2048
         .rightStick =  {0x00, 0x08, 0x80}, // 2048, 2048
         .rumbleReport = 0x09,
-        .imuData = {{0, 0, -4096, 0, 0, 0}, {0, 0, -4096, 0, 0, 0}, {0, 0, -4096, 0, 0, 0}},
+        .imuData = {{0, 0, 4096, 0, 0, 0}, {0, 0, 4096, 0, 0, 0}, {0, 0, 4096, 0, 0, 0}},
         .padding = {0x00}
     };
 }
@@ -187,7 +187,7 @@ bool SwitchProDriver::sendReport(const uint8_t reportID, void const* reportData,
     return result;
 }
 
-void SwitchProDriver::handleConfigReport(uint8_t switchReportID, uint8_t switchReportSubID, const uint8_t *reportData, uint16_t reportLength) {
+void SwitchProDriver::handleConfigReport(uint8_t switchReportID, const uint8_t switchReportSubID, const uint8_t *reportData, uint16_t reportLength) {
     bool canSend = false;
 
     switch (switchReportSubID) {
@@ -235,18 +235,21 @@ void SwitchProDriver::handleConfigReport(uint8_t switchReportID, uint8_t switchR
     if (canSend) isReportQueued = true;
 }
 
-void SwitchProDriver::handleFeatureReport(uint8_t switchReportID, uint8_t switchReportSubID, const uint8_t *reportData, uint16_t reportLength) {
-    uint8_t commandID = reportData[10];
+void SwitchProDriver::handleFeatureReport(const uint8_t switchReportID, const uint8_t *reportData, const uint16_t reportLength) {
+    const uint8_t commandID = reportData[10];
     uint32_t spiReadAddress = 0;
     uint8_t spiReadSize = 0;
     bool canSend = false;
 
     report[0] = SwitchReportID::REPORT_OUTPUT_21;
     report[1] = last_report_counter;
-    memcpy(report+2,&switchReport.inputs,sizeof(SwitchInputReport));
+    report[2] = 0x8E;
+    memcpy(report+3, &switchReport.inputs, 3); // Copy Buttons (3 bytes)
+    memcpy(report+6, &switchReport.leftStick, 3); // Copy Left Stick
+    memcpy(report+9, &switchReport.rightStick, 3); // Copy Right Stick
     report[12] = switchReport.rumbleReport;
 
-    // logSamplingPrintf("logSamplingPrintf=%02x,switchReportID=%02x,switchReportSubID=%02x,commandID=%02x\n",inputMode, switchReportID,switchReportSubID,commandID);
+    // logSamplingPrintf("logSamplingPrintf=%02x,switchReportID=%02x,commandID=%02x\n",inputMode, switchReportID,commandID);
 
     switch (commandID) {
         case SwitchCommands::GET_CONTROLLER_STATE:
@@ -365,6 +368,7 @@ void SwitchProDriver::handleFeatureReport(uint8_t switchReportID, uint8_t switch
             playerID = reportData[11];
             report[13] = 0x80;
             report[14] = commandID;
+            report[15] = 0x03;
             canSend = true;
             // logSamplingPrintf("Player set to %d\n", playerID);
             // logSamplingPrintf("----------------------------------------------\n");
@@ -451,22 +455,23 @@ void SwitchProDriver::handleFeatureReport(uint8_t switchReportID, uint8_t switch
     if (canSend) isReportQueued = true;
 }
 
-void SwitchProDriver::set_report(uint8_t report_id, hid_report_type_t report_type, const uint8_t *buffer, uint16_t bufsize) {
+void SwitchProDriver::set_report(const uint8_t report_id, const hid_report_type_t report_type, const uint8_t *buffer, const uint16_t bufsize) {
     if (report_type != HID_REPORT_TYPE_OUTPUT) return;
 
     std::lock_guard lock(reportMtx);
 
     memset(report, 0x00, sizeof(report));
 
-    uint8_t switchReportID = buffer[0];
-    uint8_t switchReportSubID = buffer[1];
-    // printf("SwitchProDriver::set_report Rpt: %02x, Type: %d, Len: %d :: SID: %02x, SSID: %02x\n", report_id, report_type, bufsize, switchReportID, switchReportSubID);
+    const uint8_t switchReportID = buffer[0];
+
+    // printf("SwitchProDriver::set_report Rpt: %02x, Type: %d, Len: %d :: SID: %02x\n", report_id, report_type, bufsize, switchReportID);
     if (switchReportID == SwitchReportID::REPORT_OUTPUT_00) {
     } else if (switchReportID == SwitchReportID::REPORT_FEATURE) {
         queuedReportID = report_id;
-        handleFeatureReport(switchReportID, switchReportSubID, buffer, bufsize);
+        handleFeatureReport(switchReportID, buffer, bufsize);
     } else if (switchReportID == SwitchReportID::REPORT_CONFIGURATION) {
         queuedReportID = report_id;
+        const uint8_t switchReportSubID = buffer[1];
         handleConfigReport(switchReportID, switchReportSubID, buffer, bufsize);
     } else {
         // logSamplingPrintf("SwitchProDriver::set_report Rpt: %02x, Type: %d, Len: %d :: SID: %02x, SSID: %02x\n", report_id, report_type, bufsize, switchReportID, switchReportSubID);
