@@ -18,7 +18,11 @@ public:
     }
 
     void exec() override {
-        Serial0.write(buffer, readSize);
+        // Serial0.write(buffer, readSize);
+        for (int i = 0; i < readSize; i++) {
+            Serial0.printf("%02x,", buffer[i]);
+        }
+        Serial0.printf("\n");
         readyIndex = 0;
     }
 

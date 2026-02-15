@@ -10,6 +10,13 @@ SwitchProDriver::SwitchProDriver() : gen(rd()), dist(0, 0xFF) {
               HID_ITF_PROTOCOL_NONE, 2, true);
 }
 
+[[noreturn]] void SwitchProDriver::loop() {
+    while (true) {
+        process(false);
+        delay(1);
+    }
+}
+
 void SwitchProDriver::initialize() {
     TinyUSBDevice.setID(0x057E, 0x2009); // Nintendo Switch Pro Controller
     TinyUSBDevice.setDeviceVersion(0x0200);
@@ -42,8 +49,8 @@ void SwitchProDriver::initialize() {
     isReady = false;
 
     deviceInfo = {
-        .majorVersion = 0x04,
-        .minorVersion = 0x91,
+        .majorVersion = 0x03,
+        .minorVersion = 0x49,
         .controllerType = SwitchControllerType::SWITCH_TYPE_PRO_CONTROLLER,
         .unknown00 = 0x02,
         // MAC address in reverse
@@ -54,6 +61,8 @@ void SwitchProDriver::initialize() {
 
     last_report_timer = millis();
     resetSwitchReport();
+
+    worker = std::thread(&SwitchProDriver::loop, this);
     is_init = true;
 }
 
@@ -104,8 +113,8 @@ void SwitchProDriver::resetSwitchReport() {
 }
 
 bool SwitchProDriver::process(const bool force) {
-    const uint32_t now = millis();
-    const uint32_t next_report_time = last_report_timer + SWITCH_PRO_KEEPALIVE_TIMER;
+    const unsigned long now = millis();
+    const unsigned long next_report_time = last_report_timer + SWITCH_PRO_KEEPALIVE_TIMER;
     // Wake up TinyUSB device
     if (tud_suspended()) {
         tud_remote_wakeup();
@@ -117,7 +126,7 @@ bool SwitchProDriver::process(const bool force) {
             std::lock_guard lock(reportMtx);
             sendIdentify();
         }
-        if (tud_hid_ready() && sendReport(0, report, false) == true) {
+        if (tud_hid_ready() && sendReport(0, report) == true) {
             isInitialized = true;
             return true;
         }
@@ -134,7 +143,7 @@ bool SwitchProDriver::process(const bool force) {
         //     logSamplingPrintf("%02x,", report[i]);
         // }
         // logSamplingPrintf("]\n");
-        if (tud_hid_ready() && sendReport(queuedReportID, report, true) == true) {
+        if (tud_hid_ready() && sendReport(queuedReportID, report) == true) {
             isReportQueued = false;
             return true;
         }
@@ -142,13 +151,9 @@ bool SwitchProDriver::process(const bool force) {
 
     if (isReady) {
         switchReport.timestamp = last_report_counter;
-        const void * inputReport = &switchReport;
-        if (constexpr uint16_t report_size = sizeof(switchReport); memcmp(last_report, inputReport, report_size) != 0) {
-            // HID ready + report sent, copy previous report
-            if (tud_hid_ready() && sendReport(0, inputReport, true) == true) {
-                memcpy(last_report, inputReport, report_size);
-                return true;
-            }
+        // HID ready + report sent, copy previous report
+        if (tud_hid_ready() && sendReport(0, &switchReport) == true) {
+            return true;
         }
     }
     return false;
@@ -166,24 +171,18 @@ void SwitchProDriver::sendIdentify() {
         report[4+i] = deviceInfo.macAddress[5-i];
     }
 }
-
-bool SwitchProDriver::sendReport(const uint8_t reportID, void const* reportData, const bool addCount) {
+bool SwitchProDriver::sendReport(const uint8_t reportID, void const* reportData) {
     std::lock_guard lock(reportMtx);
 
-    // logSamplingPrintf("SwitchProDriver::sendReport:[");
-    // for (int i = 0; i < 64; i++) {
-    //     logSamplingPrintf("%02x,", ((uint8_t*)reportData)[i]);
-    // }
-    // logSamplingPrintf("]\n");
     const bool result = tud_hid_report(reportID, reportData, SWITCH_PRO_ENDPOINT_SIZE);
-    if (addCount) {
+    if (result) {
         if (last_report_counter < 255) {
             last_report_counter++;
         } else {
             last_report_counter = 0;
         }
+        last_report_timer = millis();
     }
-    last_report_timer = millis();
     return result;
 }
 
@@ -351,12 +350,21 @@ void SwitchProDriver::handleFeatureReport(const uint8_t switchReportID, const ui
             canSend = true;
             // logSamplingPrintf("----------------------------------------------\n");
             break;
-        case SwitchCommands::SET_NFC_IR_CONFIG:
-            // logSamplingPrintf("SwitchProDriver::set_report: Rpt 0x01 SET_NFC_IR_CONFIG\n");
+        case SwitchCommands::SPI_WRITE: {
+            const unsigned int spiWriteAddress = (reportData[14] << 24) | (reportData[13] << 16) | (reportData[12] << 8) | (reportData[11]);
+
+            const uint8_t spiWriteSize = reportData[15];
             report[13] = 0x80;
-            report[14] = commandID;
+
+            report[14] = reportData[10];
+
+            report[15] = 0x00;
+
             canSend = true;
+
             break;
+        }
+        case SwitchCommands::SET_NFC_IR_CONFIG:
         case SwitchCommands::SET_NFC_IR_STATE:
             // logSamplingPrintf("SwitchProDriver::set_report: Rpt 0x01 SET_NFC_IR_STATE\n");
             report[13] = 0x80;
@@ -413,6 +421,10 @@ void SwitchProDriver::handleFeatureReport(const uint8_t switchReportID, const ui
             // logSamplingPrintf("SwitchProDriver::set_report: Rpt 0x01 IMU_SENSITIVITY\n");
             report[13] = 0x80;
             report[14] = commandID;
+            report[15] = 0x03;
+            report[16] = 0x00;
+            report[17] = 0x01;
+            report[18] = 0x01;
             canSend = true;
             break;
         case SwitchCommands::ENABLE_VIBRATION:
@@ -462,10 +474,8 @@ void SwitchProDriver::set_report(const uint8_t report_id, const hid_report_type_
 
     memset(report, 0x00, sizeof(report));
 
-    const uint8_t switchReportID = buffer[0];
-
     // printf("SwitchProDriver::set_report Rpt: %02x, Type: %d, Len: %d :: SID: %02x\n", report_id, report_type, bufsize, switchReportID);
-    if (switchReportID == SwitchReportID::REPORT_OUTPUT_00) {
+    if (const uint8_t switchReportID = buffer[0]; switchReportID == SwitchReportID::REPORT_OUTPUT_00) {
     } else if (switchReportID == SwitchReportID::REPORT_FEATURE) {
         queuedReportID = report_id;
         handleFeatureReport(switchReportID, buffer, bufsize);

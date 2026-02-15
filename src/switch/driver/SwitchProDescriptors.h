@@ -79,6 +79,7 @@ typedef enum {
     TRIGGER_BUTTONS = 0x04,
     SET_SHIPMENT = 0x08,
     SPI_READ = 0x10,
+    SPI_WRITE = 0x11,
     SET_NFC_IR_CONFIG = 0x21,
     SET_NFC_IR_STATE = 0x22,
     SET_PLAYER_LIGHTS = 0x30,

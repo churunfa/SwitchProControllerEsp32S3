@@ -24,9 +24,8 @@ public:
         // 读完数据了，更新输入
         if (SwitchProDriver::getInstance().updateInputReport(&serialInput)) {
             // 如果有更新，立刻发送一次数据
-            SwitchProDriver::getInstance().process(false);
+            SwitchProDriver::getInstance().process(true);
         }
-        readIndex = 0;
     }
 
     void reset() override {

@@ -25,10 +25,10 @@ typedef struct __attribute((packed, aligned(1))) {
 
 class SwitchProDriver {
 public:
-
     virtual ~SwitchProDriver() = default;
 
     virtual bool process(bool force);
+    [[noreturn]] void loop();
     virtual void initialize();
     virtual void set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize);
     virtual void resetSwitchReport();
@@ -37,16 +37,16 @@ public:
 
 private:
     uint8_t report[SWITCH_PRO_ENDPOINT_SIZE] = { };
-    uint8_t last_report[SWITCH_PRO_ENDPOINT_SIZE] = { };
     SwitchProReport switchReport{};
     uint8_t last_report_counter{};
-    uint32_t last_report_timer{};
+    unsigned long last_report_timer{};
     bool is_init = false;
     bool isReady = false;
     bool isInitialized = false;
     bool isReportQueued = false;
     uint8_t queuedReportID = 0;
 
+    std::thread worker;
     uint8_t handshakeCounter = 0;
     std::mutex reportMtx;
 
@@ -69,7 +69,7 @@ private:
     SwitchProDriver();
     void sendIdentify();
 
-    bool sendReport(uint8_t reportID, const void* reportData, bool addCount);
+    bool sendReport(uint8_t reportID, const void* reportData);
 
     void readSPIFlash(uint8_t* dest, uint32_t address, uint8_t size);
 
@@ -105,13 +105,11 @@ private:
         // ------------------------------------------------------------
         // Config & Calibration 1 (主校准块)
         // ------------------------------------------------------------
-        // [行1] Accel Origin (X,Y,Z全是0) + Accel Coeff X (标准值0x4000)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40,
 
-        // [行2] Accel Coeff Y,Z (标准值0x4000) + Gyro Origin X,Y (全是0)
         0x00, 0x40, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00,
 
-        // [行3] Gyro Origin Z (全是0) + Gyro Coeff X,Y,Z (标准值0x343B)
+        // [行3] Gyro Origin Z (全是 0) + Gyro Coeff X,Y,Z (0x343B)
         0x00, 0x00, 0x3B, 0x34, 0x3B, 0x34, 0x3B, 0x34,
 
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -150,7 +148,7 @@ private:
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
         0xFF, 0xFF, 0xFF,
 
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x40,
+        0x50, 0xFD, 0x00, 0x00, 0xC6, 0x0F, 0x00, 0x40,
 
         0x00, 0x40, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00,
 
@@ -166,14 +164,14 @@ private:
     const uint8_t userCalibrationData[0x3F] = {
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-        
+
         // Left Stick
-        0xB2, 0xA1, 0xFF, 0xF7, 0x7F, 0x00, 0x08, 0x80,
-        0xFF, 0xF7, 0x7F,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff,
 
         // Right Stick
-        0xB2, 0xA1, 0x00, 0x08, 0x80, 0xFF, 0xF7, 0x7F,
-        0xFF, 0xF7, 0x7F,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff,
 
         // Motion
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
