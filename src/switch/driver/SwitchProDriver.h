@@ -14,7 +14,7 @@
 #include <Adafruit_TinyUSB.h>
 #include "switch/driver/SwitchProDescriptors.h"
 
-#define SWITCH_PRO_KEEPALIVE_TIMER 15
+#define SWITCH_PRO_KEEPALIVE_TIMER 5
 
 typedef struct __attribute((packed, aligned(1))) {
     SwitchInputReport inputs;
