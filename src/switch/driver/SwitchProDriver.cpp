@@ -11,6 +11,15 @@ SwitchProDriver::SwitchProDriver() : gen(rd()), dist(0, 0xFF) {
 }
 
 [[noreturn]] void SwitchProDriver::loop() {
+    if (TinyUSBDevice.mounted()){
+        TinyUSBDevice.detach();
+        delay(10);
+        TinyUSBDevice.attach();
+    }
+    while (!TinyUSBDevice.mounted()) {
+        // logPrintf("USB mounted: %d\n", TinyUSBDevice.mounted());
+        delay(100);
+    }
     while (true) {
         process(false);
         delay(1);
@@ -31,16 +40,6 @@ void SwitchProDriver::initialize() {
     usb_hid.setReportCallback(nullptr, set_report_callback);
     usb_hid.begin();
 
-
-    if (TinyUSBDevice.mounted()){
-        TinyUSBDevice.detach();
-        delay(10);
-        TinyUSBDevice.attach();
-    }
-    while (!TinyUSBDevice.mounted()) {
-        // logPrintf("USB mounted: %d\n", TinyUSBDevice.mounted());
-        delay(100);
-    }
     logPrintf("USB Mounted Successfully!\n");
 
     playerID = 0;
@@ -511,6 +510,7 @@ void SwitchProDriver::readSPIFlash(uint8_t* dest, const uint32_t address, const 
 }
 
 bool SwitchProDriver::updateInputReport(SwitchProSerialInput* serialInput) {
+    std::lock_guard lock(reportMtx);
     bool update = false;
     if (memcmp(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport)) != 0) {
         memcpy(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport));

@@ -1,13 +1,29 @@
 #include <Arduino.h>
+#include <FS.h>
+#include <LittleFS.h>
+#include <debug/log.h>
 
 #include "debug/led_control.h"
 #include "switch/driver/SwitchProDriver.h"
 #include "read/ReadStrategyProcess.h"
+#include "graph/Graph.h"
 
 void setup() {
     Serial0.begin(3000000);
     resetLed();
+
+    // 挂载 LittleFS
+    logPrintf("Mounting LittleFS...");
+    if(!LittleFS.begin(true)){
+        printf("LittleFS Mount Failed");
+        return;
+    }
+
+    // 打印一下文件系统信息，确认是否真的有 9MB
+    logPrintf("LittleFS Total: %u bytes\n", LittleFS.totalBytes());
+    logPrintf("LittleFS Used: %u bytes\n", LittleFS.usedBytes());
     SwitchProDriver::getInstance();
+    GraphExecutor::getInstance();
 }
 
 void loop() {
