@@ -24,9 +24,26 @@ void setup() {
     logPrintf("LittleFS Used: %u bytes\n", LittleFS.usedBytes());
     SwitchProDriver::getInstance();
     GraphExecutor::getInstance();
+
+    pinMode(BOOT_PIN, INPUT_PULLUP);
 }
 
+int boot_btn_status = HIGH;
+
 void loop() {
+    if (digitalRead(BOOT_PIN) != boot_btn_status) {
+        if (digitalRead(BOOT_PIN) == LOW) {
+            boot_btn_status = LOW;
+            // 按下
+            GraphExecutor::getInstance().setRunning(true);
+        }
+        if (digitalRead(BOOT_PIN) == HIGH) {
+            boot_btn_status = HIGH;
+            // 抬起
+            GraphExecutor::getInstance().setRunning(false);
+        }
+    }
+
     if (Serial0.available() > 0) {
         const uint8_t inByte = Serial0.read();
         ReadStrategyProcess::getInstance().process(inByte);

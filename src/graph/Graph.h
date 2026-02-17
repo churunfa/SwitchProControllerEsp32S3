@@ -85,6 +85,7 @@ extern const std::map<int, Graph> GLOBAL_GRAPH_MAP;
 
 class GraphExecutor {
     std::thread worker;
+    std::atomic<bool> running{false};
     std::optional<Graph> exec_graph;
     std::recursive_mutex graphLock;
 
@@ -101,10 +102,10 @@ class GraphExecutor {
     [[noreturn]] void loop();
     static Task nodeExecCore(std::shared_ptr<GraphNode> node);
     Task nodeExec(std::shared_ptr<GraphNode> node, std::shared_ptr<std::unordered_map<int, int>> in_degrees);
+    void exec();
 public:
     void updateExecGraph(Graph graph);
-    void exec();
-
+    void setRunning(bool run);
     static GraphExecutor& getInstance() {
         static GraphExecutor instance;
         return instance;

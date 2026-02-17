@@ -264,6 +264,10 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
 
 [[noreturn]] void GraphExecutor::loop() {
     while (true) {
+        if (!running) {
+            delay(1000);
+            continue;
+        }
         {
             std::lock_guard lock(graphLock);
             if (exec_graph) {
@@ -284,4 +288,8 @@ void GraphExecutor::updateExecGraph(Graph graph) {
     exec_graph = graph;
     initGraph();
     writeExecGraph(graph);
+}
+
+void GraphExecutor::setRunning(const bool run) {
+    running = run;
 }
