@@ -8,13 +8,15 @@
 #include "ReadStrategy.h"
 #include "SwitchReportReader.h"
 #include "WriteBackReader.h"
+#include "LoopGraphReader.h"
 
 class ReadStrategyProcess {
-    static constexpr int MAX_STRATEGIES = 2;
+    static constexpr int MAX_STRATEGIES = 3;
     std::unique_ptr<ReadStrategy> strategies[MAX_STRATEGIES];
     ReadStrategyProcess() {
         strategies[0] = std::make_unique<SwitchReportReader>();
         strategies[1] = std::make_unique<WriteBackReader>();
+        strategies[2] = std::make_unique<LoopGraphReader>();
         reset();
     }
     uint8_t header[2] = {0xAA, 0x55};
