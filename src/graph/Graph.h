@@ -89,6 +89,7 @@ class GraphExecutor {
     std::recursive_mutex graphLock;
 
     std::thread exec_thread_;
+    std::jthread gamepad_connect_thread_;
     std::shared_ptr<GraphNode> start_node;
     std::map<int, std::shared_ptr<GraphNode>> node_map;
     std::map<int, std::shared_ptr<GraphEdge>> edge_map;
@@ -102,9 +103,11 @@ class GraphExecutor {
     static Task nodeExecCore(std::shared_ptr<GraphNode> node);
     Task nodeExec(std::shared_ptr<GraphNode> node, std::shared_ptr<std::unordered_map<int, int>> in_degrees);
     void exec();
+    static void connectGamepadCore();
 public:
     void updateExecGraph(Graph graph);
     void switchRunning();
+    void connectGamepad();
     static GraphExecutor& getInstance() {
         static GraphExecutor instance;
         return instance;

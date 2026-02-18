@@ -29,15 +29,21 @@ void setup() {
 }
 
 int boot_btn_status = HIGH;
+unsigned long boot_hold_time = 0;
 
 void loop() {
     if (digitalRead(BOOT_PIN) != boot_btn_status) {
         if (digitalRead(BOOT_PIN) == LOW) {
             boot_btn_status = LOW;
-            // 按下
-            GraphExecutor::getInstance().switchRunning();
+            boot_hold_time = millis();
         } else {
             boot_btn_status = HIGH;
+            boot_hold_time = millis() - boot_hold_time;
+            if (boot_hold_time > 2000) {
+                GraphExecutor::getInstance().connectGamepad();
+            } else {
+                GraphExecutor::getInstance().switchRunning();
+            }
         }
     }
 

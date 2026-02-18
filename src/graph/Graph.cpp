@@ -4,7 +4,7 @@
 
 #include "Graph.h"
 
-namespace SwitchGraphExec{
+namespace SwitchGraphExec {
     SwitchProSerialInput serialInput;
     unsigned long imu_last_collect_time = 0;
 
@@ -101,18 +101,16 @@ void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &
                     SwitchGraphExec::serialInput.imuData[i].gyroZ = SwitchGraphExec::serialInput.imuData[i + 1].gyroZ;
                 }
             }
-            SwitchGraphExec::serialInput.imuData[2].accX = param_vec[0];
-            SwitchGraphExec::serialInput.imuData[2].accY = param_vec[1];
-            SwitchGraphExec::serialInput.imuData[2].accZ = param_vec[2];
-            SwitchGraphExec::serialInput.imuData[2].gyroX = param_vec[3];
-            SwitchGraphExec::serialInput.imuData[2].gyroY = param_vec[4];
-            SwitchGraphExec::serialInput.imuData[2].gyroZ = param_vec[5];
+            SwitchGraphExec::serialInput.imuData[2].accX = static_cast<int16_t>(param_vec[0]);
+            SwitchGraphExec::serialInput.imuData[2].accY = static_cast<int16_t>(param_vec[1]);
+            SwitchGraphExec::serialInput.imuData[2].accZ = static_cast<int16_t>(param_vec[2]);
+            SwitchGraphExec::serialInput.imuData[2].gyroX = static_cast<int16_t>(param_vec[3]);
+            SwitchGraphExec::serialInput.imuData[2].gyroY = static_cast<int16_t>(param_vec[4]);
+            SwitchGraphExec::serialInput.imuData[2].gyroZ = static_cast<int16_t>(param_vec[5]);
 
             SwitchGraphExec::imu_last_collect_time = nowTime;
         }
-    } else if (base_operate == "LEFT_STICK_CIRCLE") {
-        // 暂不支持
-    } else if (base_operate == "RESET_ALL") {
+    }else if (base_operate == "RESET_ALL") {
         std::memset(&SwitchGraphExec::serialInput, 0, sizeof(SwitchProReport));
         SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.leftStick, 0);
         SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.leftStick, 0);
@@ -122,10 +120,6 @@ void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &
         for (int i = 0; i < 3; i++) {
             SwitchGraphExec::serialInput.imuData[i] = SwitchGraphExec::gravitationImuData[i];
         }
-    } else if (base_operate == "SLEEP") {
-        // 空操作，不处理
-    } else if (base_operate == "START_EMPTY") {
-        // 空操作，不处理
     }
 
     SwitchProDriver::getInstance().updateInputReport(&SwitchGraphExec::serialInput);
@@ -296,4 +290,37 @@ void GraphExecutor::updateExecGraph(Graph graph) {
 
 void GraphExecutor::switchRunning() {
     running = !running;
+}
+
+void GraphExecutor::connectGamepadCore() {
+    SwitchProSerialInput serialInput;
+    // L + R 按下
+    serialInput.inputs.buttonL = true;
+    serialInput.inputs.buttonR = true;
+    SwitchProDriver::getInstance().updateInputReport(&serialInput);
+    SwitchProDriver::getInstance().process(true);
+    delay(100);
+    // L + R 松开
+    serialInput.inputs.buttonL = false;
+    serialInput.inputs.buttonR = false;
+    SwitchProDriver::getInstance().updateInputReport(&serialInput);
+    SwitchProDriver::getInstance().process(true);
+    delay(1000);
+    // A 按下
+    serialInput.inputs.buttonA = true;
+    SwitchProDriver::getInstance().updateInputReport(&serialInput);
+    SwitchProDriver::getInstance().process(true);
+    delay(100);
+    // A 松开
+    serialInput.inputs.buttonA = false;
+    SwitchProDriver::getInstance().updateInputReport(&serialInput);
+    SwitchProDriver::getInstance().process(true);
+    delay(100);
+}
+
+void GraphExecutor::connectGamepad() {
+    if (gamepad_connect_thread_.joinable()) {
+        return;
+    }
+    gamepad_connect_thread_ = std::jthread(&GraphExecutor::connectGamepadCore);
 }

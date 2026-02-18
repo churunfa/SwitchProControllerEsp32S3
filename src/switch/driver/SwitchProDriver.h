@@ -16,13 +16,16 @@
 
 #define SWITCH_PRO_KEEPALIVE_TIMER 5
 
-typedef struct __attribute((packed, aligned(1))) {
-    SwitchInputReport inputs;
-    SwitchAnalog leftStick;
-    SwitchAnalog rightStick;
-    ImuData imuData[3];
-} SwitchProSerialInput;
-
+struct __attribute__((packed, aligned(1))) SwitchProSerialInput {
+    SwitchInputReport inputs{};
+    SwitchAnalog leftStick = {0x00, 0x08, 0x80};
+    SwitchAnalog rightStick = {0x00, 0x08, 0x80};
+    ImuData imuData[3] = {
+        {0, 4096, 0, 0, 0, 0},
+        {0, 4096, 0, 0, 0, 0},
+        {0, 4096, 0, 0, 0, 0}
+    };
+};
 class SwitchProDriver {
 public:
     virtual ~SwitchProDriver() = default;
