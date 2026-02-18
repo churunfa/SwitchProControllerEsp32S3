@@ -95,6 +95,14 @@ typedef enum {
 
 typedef struct {
     uint8_t data[3];
+
+    [[nodiscard]] uint16_t getX() const {
+        return static_cast<uint16_t>(data[0]) | (data[1] & 0x0F) << 8;
+    }
+
+    [[nodiscard]] uint16_t getY() const {
+        return static_cast<uint16_t>(data[1] >> 4) | data[2] << 4;
+    }
 } SwitchAnalog;
 
 // left and right calibration are stored differently for some reason, so two structs

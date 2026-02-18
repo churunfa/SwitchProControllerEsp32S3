@@ -509,24 +509,66 @@ void SwitchProDriver::readSPIFlash(uint8_t* dest, const uint32_t address, const 
     }
 }
 
-bool SwitchProDriver::updateInputReport(SwitchProSerialInput* serialInput) {
+bool stickMoved(const SwitchAnalog stick) {
+    const int x = static_cast<int>(stick.getX()) - 2048;
+    const int y = static_cast<int>(stick.getY()) - 2048;
+    return abs(x) > 128 || abs(y) > 128;
+}
+
+bool imuMoved(ImuData imuData[3]) {
+    for (int i = 0; i < 3; i++) {
+        if (abs(imuData[i].accX) > 50) {
+            return true;
+        }
+        if (abs(imuData[i].accY) > 50) {
+            return true;
+        }
+        if (abs(imuData[i].accZ - 4096) > 50) {
+            return true;
+        }
+        if (abs(imuData[i].gyroX) > 50) {
+            return true;
+        }
+        if (abs(imuData[i].gyroY) > 50) {
+            return true;
+        }
+        if (abs(imuData[i].gyroZ) > 50) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool btnInputs(const SwitchInputReport input) {
+    return input.buttonA || input.buttonB || input.buttonX || input.buttonY || input.buttonL || input.buttonR || input.buttonZL || input.buttonZR || input.buttonMinus || input.buttonPlus || input.buttonHome || input.buttonCapture || input.dpadDown || input.dpadUp || input.dpadLeft || input.dpadRight || input.buttonThumbL || input.buttonThumbR || input.buttonLeftSL || input.buttonLeftSR || input.buttonRightSL || input.buttonRightSR;
+}
+
+bool SwitchProDriver::updateInputReport(SwitchProSerialInput* serialInput, const bool fockEffect) {
     std::lock_guard lock(reportMtx);
     bool update = false;
-    if (memcmp(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport)) != 0) {
-        memcpy(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport));
-        update = true;
+    if (fockEffect || btnInputs(serialInput->inputs)) {
+        if (memcmp(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport)) != 0) {
+            memcpy(&switchReport.inputs, &serialInput->inputs, sizeof(SwitchInputReport));
+            update = true;
+        }
     }
-    if (memcmp(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog)) != 0) {
-        memcpy(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog));
-        update = true;
+    if (fockEffect || stickMoved(serialInput->leftStick)) {
+        if (memcmp(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog)) != 0) {
+            memcpy(&switchReport.leftStick, &serialInput->leftStick, sizeof(SwitchAnalog));
+            update = true;
+        }
     }
-    if (memcmp(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog)) != 0) {
-        memcpy(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog));
-        update = true;
+    if (fockEffect || stickMoved(serialInput->rightStick)) {
+        if (memcmp(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog)) != 0) {
+            memcpy(&switchReport.rightStick, &serialInput->rightStick, sizeof(SwitchAnalog));
+            update = true;
+        }
     }
-    if (memcmp(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3) != 0) {
-        memcpy(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3);
-        update = true;
+    if (fockEffect || imuMoved(serialInput->imuData)) {
+        if (memcmp(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3) != 0) {
+            memcpy(&switchReport.imuData, &serialInput->imuData, sizeof(ImuData) * 3);
+            update = true;
+        }
     }
     return update;
 }

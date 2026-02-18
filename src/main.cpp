@@ -9,6 +9,7 @@
 #include "graph/Graph.h"
 
 void setup() {
+    Serial0.setRxBufferSize(8192);
     Serial0.begin(3000000);
     resetLed();
 
@@ -47,8 +48,7 @@ void loop() {
         }
     }
 
-    if (Serial0.available() > 0) {
-        const uint8_t inByte = Serial0.read();
-        ReadStrategyProcess::getInstance().process(inByte);
+    while (Serial0.available() > 0) {
+        ReadStrategyProcess::getInstance().process(Serial0.read());
     }
 }

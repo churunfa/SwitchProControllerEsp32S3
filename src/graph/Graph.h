@@ -84,7 +84,6 @@ struct glz::meta<Graph> {
 extern const std::map<int, Graph> GLOBAL_GRAPH_MAP;
 
 class GraphExecutor {
-    std::atomic<bool> running{false};
     std::optional<Graph> exec_graph;
     std::recursive_mutex graphLock;
 
@@ -103,11 +102,11 @@ class GraphExecutor {
     static Task nodeExecCore(std::shared_ptr<GraphNode> node);
     Task nodeExec(std::shared_ptr<GraphNode> node, std::shared_ptr<std::unordered_map<int, int>> in_degrees);
     void exec();
-    static void connectGamepadCore();
 public:
+    std::atomic<bool> running{false};
     void updateExecGraph(Graph graph);
     void switchRunning();
-    void connectGamepad();
+    static void connectGamepad();
     static GraphExecutor& getInstance() {
         static GraphExecutor instance;
         return instance;

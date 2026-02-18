@@ -5,6 +5,8 @@
 #ifndef SWITCHPROCONTROLLERESP32S3_SWITCHREPORTREADER_H
 #define SWITCHPROCONTROLLERESP32S3_SWITCHREPORTREADER_H
 
+#include <graph/Graph.h>
+
 #include "ReadStrategy.h"
 
 class SwitchReportReader : public ReadStrategy {
@@ -22,7 +24,7 @@ public:
 
     void exec() override {
         // 读完数据了，更新输入
-        if (SwitchProDriver::getInstance().updateInputReport(&serialInput)) {
+        if (SwitchProDriver::getInstance().updateInputReport(&serialInput, !GraphExecutor::getInstance().running)) {
             // 如果有更新，立刻发送一次数据
             SwitchProDriver::getInstance().process(true);
         }

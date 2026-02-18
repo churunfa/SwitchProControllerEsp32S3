@@ -35,7 +35,7 @@ public:
     virtual void initialize();
     virtual void set_report(uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize);
     virtual void resetSwitchReport();
-    virtual bool updateInputReport(SwitchProSerialInput* serialInput);
+    virtual bool updateInputReport(SwitchProSerialInput* serialInput, bool fockEffect);
     static SwitchProDriver& getInstance();
 
 private:

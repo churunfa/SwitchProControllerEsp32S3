@@ -37,12 +37,13 @@ public:
         if (curIndex < 2) {
             // 没读到头的话从头重读
             if (inByte != header[curIndex]) {
-                Serial0.printf("read error,inByte=%02x,header=%02x,err=header读取类型异常\n", inByte, header[curIndex]);
+                logPrintf("read error,inByte=%02x,header=%02x,err=header读取类型异常\n", inByte, header[curIndex]);
                 reset();
             }
         } else if (curIndex == 2) {
             // 读类型
             curType = inByte;
+            verifyCheckSum = inByte;
         } else if (curIndex >= 3) {
             // 正在读数据
             const auto& strategy = strategies[curType];
@@ -58,14 +59,14 @@ public:
                     try {
                         strategy->exec();
                     } catch (const std::system_error& e) {
-                        Serial0.printf("run error, strategy=%d,err=%s\n",curType,e.what());
+                        logPrintf("run error, strategy=%d,err=%s\n",curType,e.what());
                         showRedLed();
                     }
                     resetLed();
                 } else {
                     // 校验失败
                     showRedLed();
-                    Serial0.printf("run error, strategy=%d,err=校验和校验失败\n",curType);
+                    logPrintf("run error, strategy=%d,inByte=%d,verifyCheckSum=%d, curIndex=%d,err=校验和校验失败\n",curType, inByte, verifyCheckSum, curIndex);
                 }
                 strategy->reset();
                 reset();
