@@ -16,17 +16,20 @@ class LoopGraphReader : public ReadStrategy {
     int len = 0;
 public:
     void readData(const uint8_t inByte) override {
-        byte_index++;
-        if (byte_index <= 3) {
+        if (byte_index < 3) {
             // 读取长度
-            len = inByte << (byte_index * 8) | len;
+            len = static_cast<int>(inByte) << (byte_index * 8) | len;
+            byte_index++;
+            logPrintf("len=%d\n", len);
             return;
         }
         buffer.push_back(inByte);
+        byte_index++;
     }
 
     void exec() override {
-        if (glz::write_json(graph, buffer)) {
+        logPrintf("读取JSON=%s\n", buffer.data());
+        if (glz::read_json(graph, buffer)) {
             logPrintf("Failed to serialize graph\n");
         }
         GraphExecutor::getInstance().updateExecGraph(graph);
@@ -38,7 +41,7 @@ public:
         len = 0;
     }
 
-    int8_t length() override {
+    int length() override {
         return len + 3; // 前三个字节是长度，也需要加上
     }
 };

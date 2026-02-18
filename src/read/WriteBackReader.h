@@ -30,7 +30,7 @@ public:
         readyIndex = 0;
     }
 
-    int8_t length() override {
+    int length() override {
         return 45;
     }
 };

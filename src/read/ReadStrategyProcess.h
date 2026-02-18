@@ -21,7 +21,7 @@ class ReadStrategyProcess {
     }
     uint8_t header[2] = {0xAA, 0x55};
 
-    uint8_t readIndex = 0;
+    int readIndex = 0;
     uint8_t curType{};
     uint8_t verifyCheckSum = 0;
 
@@ -32,7 +32,7 @@ class ReadStrategyProcess {
 
 public:
     void process(const uint8_t inByte) {
-        const uint8_t curIndex = readIndex;
+        const int curIndex = readIndex;
         readIndex++;
         if (curIndex < 2) {
             // 没读到头的话从头重读
@@ -46,7 +46,7 @@ public:
         } else if (curIndex >= 3) {
             // 正在读数据
             const auto& strategy = strategies[curType];
-            if (const int8_t length = strategy->length(); curIndex < length + 3) {
+            if (const int length = strategy->length(); curIndex < length + 3) {
                 // Serial0.printf("read data=%2x\n",inByte);
                 // 读数据
                 verifyCheckSum ^= inByte;

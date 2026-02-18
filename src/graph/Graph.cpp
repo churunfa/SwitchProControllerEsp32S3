@@ -132,7 +132,7 @@ void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &
 }
 
 void GraphNode::batchRunOpt() {
-    const int size = base_operates.size();
+    const auto size = base_operates.size();
     if (size != params.size() || size != resets.size()) {
         logPrintf("参数个数不匹配\n");
         return;
@@ -158,7 +158,7 @@ Task GraphExecutor::nodeExecCore(const std::shared_ptr<GraphNode> node) {
         if (has_auto_reset) {
             for (int j = 0; j < node->auto_resets.size(); ++j) {
                 if (node->auto_resets[j]) {
-                    node->runOpt(node->base_operates[j], node->params[j], true);
+                    GraphNode::runOpt(node->base_operates[j], node->params[j], true);
                 }
             }
         }
@@ -166,14 +166,15 @@ Task GraphExecutor::nodeExecCore(const std::shared_ptr<GraphNode> node) {
     }
 }
 
-Task GraphExecutor::nodeExec(std::shared_ptr<GraphNode> node, std::shared_ptr<std::unordered_map<int, int>> in_degrees) {
+Task GraphExecutor::nodeExec(const std::shared_ptr<GraphNode> node, const std::shared_ptr<std::unordered_map<int, int>> in_degrees) {
     co_await nodeExecCore(node);
-
-    for (const auto& graph_edge : out_edge.at(node->node_id)) {
-        (*in_degrees)[graph_edge->next_node_id]--;
-        if ((*in_degrees)[graph_edge->next_node_id] == 0) {
-            const auto next_node = node_map.at(graph_edge->next_node_id);
-            nodeExec(next_node, in_degrees);
+    if (out_edge.contains(node->node_id)) {
+        for (const auto& graph_edge : out_edge.at(node->node_id)) {
+            (*in_degrees)[graph_edge->next_node_id]--;
+            if ((*in_degrees)[graph_edge->next_node_id] == 0) {
+                const auto next_node = node_map.at(graph_edge->next_node_id);
+                nodeExec(next_node, in_degrees);
+            }
         }
     }
 }
@@ -198,7 +199,14 @@ void GraphExecutor::exec() {
 GraphExecutor::GraphExecutor() {
     exec_graph = readExecGraph();
     initGraph();
-    worker = std::thread(&GraphExecutor::loop, this);
+    xTaskCreate(
+        [](void* arg) { static_cast<GraphExecutor*>(arg)->loop(); },
+        "GraphLoop",
+        8192,  // 8KB 栈
+        this,
+        1,
+        nullptr
+    );
 }
 
 std::optional<Graph> GraphExecutor::readExecGraph() {
@@ -257,7 +265,6 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
         logPrintf("Failed to open file for writing\n");
         return;
     }
-
     file.write(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size());
     file.close();
 }
@@ -271,11 +278,8 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
         {
             std::lock_guard lock(graphLock);
             if (exec_graph) {
-                const unsigned long start_time = millis();
                 exec();
-                if (const unsigned long end_time = millis(); start_time + 10 < end_time) {
-                    delay(end_time - start_time-10);
-                }
+                delay(1);
                 continue;
             }
         }
@@ -290,6 +294,6 @@ void GraphExecutor::updateExecGraph(Graph graph) {
     writeExecGraph(graph);
 }
 
-void GraphExecutor::setRunning(const bool run) {
-    running = run;
+void GraphExecutor::switchRunning() {
+    running = !running;
 }

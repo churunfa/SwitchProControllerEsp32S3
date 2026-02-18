@@ -32,7 +32,7 @@ public:
         readIndex = 0;
     }
 
-    int8_t length() override {
+    int length() override {
         return sizeof(SwitchProSerialInput);
     }
 };

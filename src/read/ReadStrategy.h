@@ -11,7 +11,7 @@ public:
     virtual void readData(uint8_t inByte);
     virtual void exec();
     virtual void reset();
-    virtual int8_t length();
+    virtual int length();
 };
 
 #endif //SWITCHPROCONTROLLERESP32S3_READSTRATEGY_H

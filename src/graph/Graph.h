@@ -84,7 +84,6 @@ struct glz::meta<Graph> {
 extern const std::map<int, Graph> GLOBAL_GRAPH_MAP;
 
 class GraphExecutor {
-    std::thread worker;
     std::atomic<bool> running{false};
     std::optional<Graph> exec_graph;
     std::recursive_mutex graphLock;
@@ -105,7 +104,7 @@ class GraphExecutor {
     void exec();
 public:
     void updateExecGraph(Graph graph);
-    void setRunning(bool run);
+    void switchRunning();
     static GraphExecutor& getInstance() {
         static GraphExecutor instance;
         return instance;
