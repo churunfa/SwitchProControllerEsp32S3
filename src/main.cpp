@@ -29,23 +29,24 @@ void setup() {
     pinMode(BOOT_PIN, INPUT_PULLUP);
 }
 
-int boot_btn_status = HIGH;
+int switch_running_boot_btn_status = HIGH;
 unsigned long boot_hold_time = 0;
 
 void loop() {
-    if (digitalRead(BOOT_PIN) != boot_btn_status) {
-        if (digitalRead(BOOT_PIN) == LOW) {
-            boot_btn_status = LOW;
+    if (const int cur_boot_status = digitalRead(BOOT_PIN); cur_boot_status != switch_running_boot_btn_status) {
+        // printf("addr=%p, cur=%d, boot=%d\n", &switch_running_boot_btn_status, cur_boot_status, switch_running_boot_btn_status);
+        // switch_running_boot_btn_status = cur_boot_status;
+        if (cur_boot_status == LOW) {
             boot_hold_time = millis();
         } else {
-            boot_btn_status = HIGH;
             boot_hold_time = millis() - boot_hold_time;
             if (boot_hold_time > 2000) {
-                GraphExecutor::getInstance().connectGamepad();
-            } else {
+                GraphExecutor::connectGamepad();
+            } else if (boot_hold_time > 50) {
                 GraphExecutor::getInstance().switchRunning();
             }
         }
+        switch_running_boot_btn_status = cur_boot_status;
     }
 
     while (Serial0.available() > 0) {

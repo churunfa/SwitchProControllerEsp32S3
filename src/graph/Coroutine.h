@@ -23,14 +23,12 @@ struct Task {
         struct FinalAwaiter {
             bool await_ready() const noexcept { return false; }
 
-            // 返回 false 表示“不挂起，继续执行销毁流程”
-            // 但在此之前，我们先手动恢复等待者
-            bool await_suspend(std::coroutine_handle<promise_type> h) noexcept {
+            void await_suspend(std::coroutine_handle<promise_type> h) noexcept {
                 auto& promise = h.promise();
                 if (promise.continuation) {
                     promise.continuation.resume();
                 }
-                return false; // 继续执行 -> 自动销毁协程帧
+                h.destroy();
             }
             void await_resume() noexcept {}
         };

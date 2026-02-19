@@ -37,41 +37,41 @@ namespace SwitchGraphExec {
 
 void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &param_vec, const bool reset) {
     if (base_operate == "BUTTON_Y") {
-        SwitchGraphExec::serialInput.inputs.buttonY = reset;
+        SwitchGraphExec::serialInput.inputs.buttonY = !reset;
     } else if (base_operate == "BUTTON_X") {
-        SwitchGraphExec::serialInput.inputs.buttonX = reset;
+        SwitchGraphExec::serialInput.inputs.buttonX = !reset;
     } else if (base_operate == "BUTTON_B") {
-        SwitchGraphExec::serialInput.inputs.buttonB = reset;
+        SwitchGraphExec::serialInput.inputs.buttonB = !reset;
     } else if (base_operate == "BUTTON_A") {
-        SwitchGraphExec::serialInput.inputs.buttonA = reset;
+        SwitchGraphExec::serialInput.inputs.buttonA = !reset;
     } else if (base_operate == "BUTTON_R") {
-        SwitchGraphExec::serialInput.inputs.buttonR = reset;
+        SwitchGraphExec::serialInput.inputs.buttonR = !reset;
     } else if (base_operate == "BUTTON_ZR") {
-        SwitchGraphExec::serialInput.inputs.buttonZR = reset;
+        SwitchGraphExec::serialInput.inputs.buttonZR = !reset;
     } else if (base_operate == "BUTTON_MINUS") {
-        SwitchGraphExec::serialInput.inputs.buttonMinus = reset;
+        SwitchGraphExec::serialInput.inputs.buttonMinus = !reset;
     } else if (base_operate == "BUTTON_PLUS") {
-        SwitchGraphExec::serialInput.inputs.buttonPlus = reset;
+        SwitchGraphExec::serialInput.inputs.buttonPlus = !reset;
     } else if (base_operate == "BUTTON_THUMB_R") {
-        SwitchGraphExec::serialInput.inputs.buttonThumbR = reset;
+        SwitchGraphExec::serialInput.inputs.buttonThumbR = !reset;
     } else if (base_operate == "BUTTON_THUMB_L") {
-        SwitchGraphExec::serialInput.inputs.buttonThumbL = reset;
+        SwitchGraphExec::serialInput.inputs.buttonThumbL = !reset;
     } else if (base_operate == "BUTTON_HOME") {
-        SwitchGraphExec::serialInput.inputs.buttonHome = reset;
+        SwitchGraphExec::serialInput.inputs.buttonHome = !reset;
     } else if (base_operate == "BUTTON_CAPTURE") {
-        SwitchGraphExec::serialInput.inputs.buttonCapture = reset;
+        SwitchGraphExec::serialInput.inputs.buttonCapture = !reset;
     } else if (base_operate == "DPAD_DOWN") {
-        SwitchGraphExec::serialInput.inputs.dpadDown = reset;
+        SwitchGraphExec::serialInput.inputs.dpadDown = !reset;
     } else if (base_operate == "DPAD_UP") {
-        SwitchGraphExec::serialInput.inputs.dpadUp = reset;
+        SwitchGraphExec::serialInput.inputs.dpadUp = !reset;
     } else if (base_operate == "DPAD_RIGHT") {
-        SwitchGraphExec::serialInput.inputs.dpadRight = reset;
+        SwitchGraphExec::serialInput.inputs.dpadRight = !reset;
     } else if (base_operate == "DPAD_LEFT") {
-        SwitchGraphExec::serialInput.inputs.dpadLeft = reset;
+        SwitchGraphExec::serialInput.inputs.dpadLeft = !reset;
     } else if (base_operate == "BUTTON_L") {
-        SwitchGraphExec::serialInput.inputs.buttonL = reset;
+        SwitchGraphExec::serialInput.inputs.buttonL = !reset;
     } else if (base_operate == "BUTTON_ZL") {
-        SwitchGraphExec::serialInput.inputs.buttonZL = reset;
+        SwitchGraphExec::serialInput.inputs.buttonZL = !reset;
     } else if (base_operate == "LEFT_STICK") {
         if (reset) {
             SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
@@ -106,7 +106,7 @@ void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &
             logPrintf("[ERROR]IMU参数个数异常\n");
         } else {
             const unsigned long nowTime = millis();
-            if (nowTime > SwitchGraphExec::imu_last_collect_time + 5) {
+            if (nowTime - SwitchGraphExec::imu_last_collect_time > 5) {
                 for (int i = 0; i < 2; i++) {
                     SwitchGraphExec::serialInput.imuData[i].accX = SwitchGraphExec::serialInput.imuData[i + 1].accX;
                     SwitchGraphExec::serialInput.imuData[i].accY = SwitchGraphExec::serialInput.imuData[i + 1].accY;
@@ -136,8 +136,6 @@ void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &
             SwitchGraphExec::serialInput.imuData[i] = SwitchGraphExec::gravitationImuData[i];
         }
     }
-
-    SwitchProDriver::getInstance().updateInputReport(&SwitchGraphExec::serialInput, true);
 }
 
 void GraphNode::batchRunOpt() {
@@ -149,15 +147,17 @@ void GraphNode::batchRunOpt() {
     for (int i = 0; i < size; ++i) {
         runOpt(base_operates[i], params[i], resets[i]);
     }
+    SwitchProDriver::getInstance().updateInputReport(&SwitchGraphExec::serialInput, true);
 }
 
 Task GraphExecutor::nodeExecCore(const std::shared_ptr<GraphNode> node) {
     bool has_auto_reset = false;
-    for (auto reset_vec : node->resets) {
+    for (auto reset_vec : node->auto_resets) {
         if (reset_vec) {
             has_auto_reset = true;
         }
     }
+    // logPrintf("time=%d,node_id=%d has_auto_reset=%d\n", millis(), node->node_id, has_auto_reset);
     for (int i = 0; i < node->loop_cnt; i++) {
         node->batchRunOpt();
         const int exec_sleep_time = has_auto_reset ? node->exec_hold_time / 2 : node->exec_hold_time;
@@ -287,8 +287,10 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
         {
             std::lock_guard lock(graphLock);
             if (exec_graph) {
+                // logPrintf("开始执行\n");
                 exec();
-                delay(3);
+                // logPrintf("开始结束\n");
+                delay(1);
                 continue;
             }
         }
@@ -304,19 +306,22 @@ void GraphExecutor::updateExecGraph(Graph graph) {
 }
 
 void GraphExecutor::switchRunning() {
-    running = !running;
-    if (!running) {
-        std::memset(&SwitchGraphExec::serialInput, 0, sizeof(SwitchProReport));
-        SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
-        SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
-        SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.rightStick, SwitchGraphExec::standardAnalog(0));
-        SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.rightStick, SwitchGraphExec::standardAnalog(0));
-        // 体感只留重力
-        for (int i = 0; i < 3; i++) {
-            SwitchGraphExec::serialInput.imuData[i] = SwitchGraphExec::gravitationImuData[i];
+    std::lock_guard lock(switch_running_lock);
+    std::thread([this] {
+        running = !running;
+        if (!running) {
+            std::memset(&SwitchGraphExec::serialInput, 0, sizeof(SwitchProReport));
+            SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
+            SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
+            SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.rightStick, SwitchGraphExec::standardAnalog(0));
+            SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.rightStick, SwitchGraphExec::standardAnalog(0));
+            // 体感只留重力
+            for (int i = 0; i < 3; i++) {
+                SwitchGraphExec::serialInput.imuData[i] = SwitchGraphExec::gravitationImuData[i];
+            }
+            SwitchProDriver::getInstance().updateInputReport(&SwitchGraphExec::serialInput, true);
         }
-        SwitchProDriver::getInstance().updateInputReport(&SwitchGraphExec::serialInput, true);
-    }
+    }).detach();
 }
 
 void GraphExecutor::connectGamepad() {

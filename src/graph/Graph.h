@@ -88,7 +88,7 @@ class GraphExecutor {
     std::recursive_mutex graphLock;
 
     std::thread exec_thread_;
-    std::jthread gamepad_connect_thread_;
+    std::recursive_mutex switch_running_lock;
     std::shared_ptr<GraphNode> start_node;
     std::map<int, std::shared_ptr<GraphNode>> node_map;
     std::map<int, std::shared_ptr<GraphEdge>> edge_map;

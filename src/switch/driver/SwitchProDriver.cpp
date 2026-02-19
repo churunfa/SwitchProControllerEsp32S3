@@ -540,7 +540,7 @@ bool imuMoved(ImuData imuData[3]) {
 }
 
 bool btnInputs(const SwitchInputReport input) {
-    return input.buttonA || input.buttonB || input.buttonX || input.buttonY || input.buttonL || input.buttonR || input.buttonZL || input.buttonZR || input.buttonMinus || input.buttonPlus || input.buttonHome || input.buttonCapture || input.dpadDown || input.dpadUp || input.dpadLeft || input.dpadRight || input.buttonThumbL || input.buttonThumbR || input.buttonLeftSL || input.buttonLeftSR || input.buttonRightSL || input.buttonRightSR;
+    return input.buttonA || input.buttonB || input.buttonX || input.buttonY || input.buttonL || input.buttonR || input.buttonZL || input.buttonZR || input.buttonMinus || input.buttonPlus || input.buttonHome || input.buttonCapture || input.dpadDown || input.dpadUp || input.dpadLeft || input.dpadRight || input.buttonThumbL || input.buttonThumbR;
 }
 
 bool SwitchProDriver::updateInputReport(SwitchProSerialInput* serialInput, const bool fockEffect) {
