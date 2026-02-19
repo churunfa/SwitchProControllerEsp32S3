@@ -7,9 +7,6 @@
 #include "switch/driver/SwitchProDriver.h"
 #include "read/ReadStrategyProcess.h"
 #include "graph/Graph.h"
-// #include "ble/NativeBLEReader.h"
-//
-// NativeBLEReader ble_reader;
 
 void setup() {
     Serial0.setRxBufferSize(8192);
@@ -30,8 +27,6 @@ void setup() {
     GraphExecutor::getInstance();
 
     pinMode(BOOT_PIN, INPUT_PULLUP);
-
-    // ble_reader.begin("vSwitch Pro Controller");
 }
 
 int switch_running_boot_btn_status = HIGH;
@@ -40,8 +35,6 @@ unsigned long boot_hold_time = 0;
 int count = 0;
 void loop() {
     if (const int cur_boot_status = digitalRead(BOOT_PIN); cur_boot_status != switch_running_boot_btn_status) {
-        // printf("addr=%p, cur=%d, boot=%d\n", &switch_running_boot_btn_status, cur_boot_status, switch_running_boot_btn_status);
-        // switch_running_boot_btn_status = cur_boot_status;
         if (cur_boot_status == LOW) {
             boot_hold_time = millis();
         } else {
