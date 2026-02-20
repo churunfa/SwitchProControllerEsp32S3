@@ -7,6 +7,9 @@
 #include "switch/driver/SwitchProDriver.h"
 #include "read/ReadStrategyProcess.h"
 #include "graph/Graph.h"
+#include "ble/NativeBLEReader.h"
+
+NativeBLEReader native_ble_reader;
 
 void setup() {
     Serial0.setRxBufferSize(8192);
@@ -27,6 +30,8 @@ void setup() {
     GraphExecutor::getInstance();
 
     pinMode(BOOT_PIN, INPUT_PULLUP);
+
+    native_ble_reader.begin("vSwitch Pro Controller");
 }
 
 int switch_running_boot_btn_status = HIGH;

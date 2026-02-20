@@ -38,7 +38,9 @@ private:
             // 修正：NimBLE 返回的是 String，直接用 c_str() 打印
             String value = pChar->getValue();
             if (value.length() > 0) {
-                logPrintf("BLE 收到: %s\n", value.c_str());
+                for (int i = 0; i < value.length(); i++) {
+                    ReadStrategyProcess::getInstance().process(value[i]);
+                }
             }
         }
     };
@@ -69,7 +71,6 @@ public:
         BLEAdvertising* pAdv = BLEDevice::getAdvertising();
         pAdv->addServiceUUID(SERVICE_UUID);
         pAdv->start();
-        logPrintf("BLE 初始化成功 (自动识别协议栈)");
     }
 
     bool isConnected() { return _connected; }
