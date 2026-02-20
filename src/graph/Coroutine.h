@@ -46,7 +46,12 @@ struct Task {
 
     // 析构函数：由于 promise 里的 final_suspend 处理了销毁，这里不需要手动 destroy
     // 除非我们想支持取消功能，但在嵌入式简单场景下，自动销毁最安全防止泄漏
-    ~Task() {}
+    ~Task() {
+        if (handle && handle.done()) {
+            // 确保已经完成的句柄被清理，如果 final_suspend 没处理干净
+            // 注意：如果 final_suspend 已经 destroy 了 handle，这里不要重复 destroy
+        }
+    }
 
     // --- 核心修复：实现 Awaitable 接口 ---
 

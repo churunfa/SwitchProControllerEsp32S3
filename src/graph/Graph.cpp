@@ -36,6 +36,7 @@ namespace SwitchGraphExec {
 }
 
 void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &param_vec, const bool reset) {
+    logPrintf("time=%ld,base_operate=%s,reset=%d\n", millis(), base_operate.data(), reset);
     if (base_operate == "BUTTON_Y") {
         SwitchGraphExec::serialInput.inputs.buttonY = !reset;
     } else if (base_operate == "BUTTON_X") {
@@ -125,11 +126,11 @@ void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &
 
             SwitchGraphExec::imu_last_collect_time = nowTime;
         }
-    }else if (base_operate == "RESET_ALL") {
+    } else if (base_operate == "RESET_ALL") {
         std::memset(&SwitchGraphExec::serialInput, 0, sizeof(SwitchProReport));
         SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
         SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
-        SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.rightStick, SwitchGraphExec::standardAnalog(0));
+        SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.rightStick, SwitchGraphExec::standardAnalog(0));
         SwitchGraphExec::setAnalogY(SwitchGraphExec::serialInput.rightStick, SwitchGraphExec::standardAnalog(0));
         // 体感只留重力
         for (int i = 0; i < 3; i++) {
@@ -157,7 +158,7 @@ Task GraphExecutor::nodeExecCore(const std::shared_ptr<GraphNode> node) {
             has_auto_reset = true;
         }
     }
-    // logPrintf("time=%d,node_id=%d has_auto_reset=%d\n", millis(), node->node_id, has_auto_reset);
+    logPrintf("time=%d,node_id=%d has_auto_reset=%d\n", millis(), node->node_id, has_auto_reset);
     for (int i = 0; i < node->loop_cnt; i++) {
         node->batchRunOpt();
         const int exec_sleep_time = has_auto_reset ? node->exec_hold_time / 2 : node->exec_hold_time;
@@ -165,11 +166,12 @@ Task GraphExecutor::nodeExecCore(const std::shared_ptr<GraphNode> node) {
         co_await async_sleep(std::max(exec_sleep_time, 0));
 
         if (has_auto_reset) {
-            for (int j = 0; j < node->auto_resets.size(); ++j) {
+            for (int j = 0; j < node->auto_resets.size(); j++) {
                 if (node->auto_resets[j]) {
                     GraphNode::runOpt(node->base_operates[j], node->params[j], true);
                 }
             }
+            SwitchProDriver::getInstance().updateInputReport(&SwitchGraphExec::serialInput, true);
         }
         co_await async_sleep(std::max(auto_reset_sleep_time, 0));
     }
@@ -182,7 +184,7 @@ Task GraphExecutor::nodeExec(const std::shared_ptr<GraphNode> node, const std::s
             (*in_degrees)[graph_edge->next_node_id]--;
             if ((*in_degrees)[graph_edge->next_node_id] == 0) {
                 const auto next_node = node_map.at(graph_edge->next_node_id);
-                nodeExec(next_node, in_degrees);
+                auto sub_task = nodeExec(next_node, in_degrees);
             }
         }
     }
@@ -211,7 +213,7 @@ GraphExecutor::GraphExecutor() {
     xTaskCreate(
         [](void* arg) { static_cast<GraphExecutor*>(arg)->loop(); },
         "GraphLoop",
-        8192,  // 8KB 栈
+        32768,
         this,
         1,
         nullptr
@@ -229,7 +231,7 @@ std::optional<Graph> GraphExecutor::readExecGraph() {
     std::string buffer(fileSize, '\0');
     file.read(reinterpret_cast<uint8_t*>(buffer.data()), fileSize);
     file.close();
-
+    logPrintf("循环拓扑图：%s\n", buffer.data());
     // 使用 Glaze 反序列化
     Graph graph;
     if (glz::read_json(graph, buffer)) {
@@ -287,9 +289,9 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
         {
             std::lock_guard lock(graphLock);
             if (exec_graph) {
-                // logPrintf("开始执行\n");
+                logPrintf("开始执行 Free heap: %d\n", ESP.getFreeHeap());
                 exec();
-                // logPrintf("开始结束\n");
+                logPrintf("执行结束 Free heap: %d\n", ESP.getFreeHeap());
                 delay(1);
                 continue;
             }
