@@ -36,7 +36,7 @@ namespace SwitchGraphExec {
 }
 
 void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &param_vec, const bool reset) {
-    logPrintf("time=%ld,base_operate=%s,reset=%d\n", millis(), base_operate.data(), reset);
+    // logPrintf("time=%ld,base_operate=%s,reset=%d\n", millis(), base_operate.data(), reset);
     if (base_operate == "BUTTON_Y") {
         SwitchGraphExec::serialInput.inputs.buttonY = !reset;
     } else if (base_operate == "BUTTON_X") {
@@ -158,7 +158,7 @@ Task GraphExecutor::nodeExecCore(const std::shared_ptr<GraphNode> node) {
             has_auto_reset = true;
         }
     }
-    logPrintf("time=%d,node_id=%d has_auto_reset=%d\n", millis(), node->node_id, has_auto_reset);
+    // logPrintf("time=%d,node_id=%d has_auto_reset=%d\n", millis(), node->node_id, has_auto_reset);
     for (int i = 0; i < node->loop_cnt; i++) {
         node->batchRunOpt();
         const int exec_sleep_time = has_auto_reset ? node->exec_hold_time / 2 : node->exec_hold_time;
@@ -289,9 +289,9 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
         {
             std::lock_guard lock(graphLock);
             if (exec_graph) {
-                logPrintf("开始执行 Free heap: %d\n", ESP.getFreeHeap());
+                // logPrintf("开始执行 Free heap: %d\n", ESP.getFreeHeap());
                 exec();
-                logPrintf("执行结束 Free heap: %d\n", ESP.getFreeHeap());
+                // logPrintf("执行结束 Free heap: %d\n", ESP.getFreeHeap());
                 delay(1);
                 continue;
             }
