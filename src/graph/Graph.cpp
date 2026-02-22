@@ -249,6 +249,9 @@ void GraphExecutor::initGraph() {
     }
     const auto& nodes = exec_graph->graph_nodes;
     const auto& edges = exec_graph->graph_edges;
+    node_map.clear();
+    edge_map.clear();
+    out_edge.clear();
     for (auto node : nodes) {
         if (node.base_operates.size() == 1 && node.base_operates[0] == "START_EMPTY") {
             start_node = std::make_shared<GraphNode>(node);
