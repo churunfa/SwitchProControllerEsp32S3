@@ -29,12 +29,23 @@ private:
         if (config.getConfig(ConfigType::MAC_ADDRESS, macData) && macData.size() == 6) {
             memcpy(_bleMac, macData.data(), 6);
             _hasValidConfig = true;
+            logPrintf("SwitchWakeUp: 成功加载MAC地址配置\n");
+        } else {
+            logPrintf("SwitchWakeUp: 未能加载MAC地址配置\n");
         }
         
         // 获取广播数据配置
-        if (config.getConfig(ConfigType::NS2_WAKE_DATA, _bleData) && !_bleData.empty() && _bleData.size() == 31) {
-            _advDataLen = _bleData.size();
-            _hasValidConfig = true;
+        std::vector<uint8_t> advData;
+        if (config.getConfig(ConfigType::NS2_WAKE_DATA, advData)) {
+            logPrintf("SwitchWakeUp: 成功读取NS2_WAKE_DATA，大小: %d字节\n", advData.size());
+            if (!advData.empty() && advData.size() == 31) {
+                _bleData = std::move(advData);
+                _advDataLen = _bleData.size();
+                _hasValidConfig = true;
+                logPrintf("SwitchWakeUp: 广播数据配置有效并已加载\n");
+            } else {
+                logPrintf("SwitchWakeUp: 广播数据大小无效: %d字节 (期望31字节)\n", advData.size());
+            }
         }
     };
 
@@ -77,7 +88,6 @@ public:
         esp_base_mac_addr_set(mac);
     }
 
-    // 3. 【修补强转】：把 uint8_t* 强转成 char* 以喂给库函数
     void trigger() {
         // 只有在有有效配置时才触发
         if (!_hasValidConfig) {

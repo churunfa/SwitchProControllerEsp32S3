@@ -161,15 +161,26 @@ void SimpleConfig::printAllConfigs() const {
     ESP_LOGI(TAG, "=== Current Configuration ===");
     ESP_LOGI(TAG, "Total configs: %d", getConfigCount());
     
-    for (const auto &key: configData.configMap | std::views::keys) {
+    for (const auto&[fst, snd] : configData.configMap) {
         String typeName = "UNKNOWN";
-        switch (key) {
+        switch (fst) {
             case ConfigType::MAC_ADDRESS: typeName = "MAC_ADDRESS"; break;
             case ConfigType::NS2_WAKE_DATA: typeName = "NS2_WAKE_DATA"; break;
         }
         
         ESP_LOGI(TAG, "Type: %s (%d), Size: %d bytes", 
                  typeName.c_str(), static_cast<int>(pair.first), pair.second.size());
+        
+        // 打印具体数据内容（前10个字节）
+        if (!snd.empty()) {
+            ESP_LOGI(TAG, "Data preview (first 10 bytes): ");
+            for (size_t i = 0; i < std::min(snd.size(), size_t(10)); i++) {
+                ESP_LOGI(TAG, "%02X ", pair.second[i]);
+            }
+            if (snd.size() > 10) {
+                ESP_LOGI(TAG, "... (and %d more bytes)", pair.second.size() - 10);
+            }
+        }
     }
     ESP_LOGI(TAG, "============================");
 }
