@@ -58,14 +58,11 @@ public:
         setSpoofedMAC(DEFAULT_BLE_MAC);
         if (_taskHandle == nullptr) {
             xTaskCreate(wakeUpTask, "WakeUpTask", 2048, this, 1, &_taskHandle);
-            logPrintf("[SwitchWakeUp] 后台独立守护线程已成功启动！\n");
         }
     }
 
     static void setSpoofedMAC(const uint8_t* mac) {
         esp_base_mac_addr_set(mac);
-        logPrintf("[SwitchWakeUp] 底层 MAC 地址已强制伪装为: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     }
 
     // 3. 【修补强转】：把 uint8_t* 强转成 char* 以喂给库函数
@@ -77,11 +74,9 @@ public:
         if (_isWakingUp) return;
 
         if (_taskHandle == nullptr) {
-            logPrintf("[SwitchWakeUp] ❌ 严重错误：未初始化线程！\n");
             return;
         }
 
-        logPrintf("[SwitchWakeUp] 暂停常规服务，准备发射唤醒裸包...\n");
         _isWakingUp = true;
 
         BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
@@ -91,9 +86,6 @@ public:
         wakeUpData.addData(advData, dataLen);
         pAdvertising->setAdvertisementData(wakeUpData);
         pAdvertising->start();
-
-        logPrintf("[SwitchWakeUp] 唤醒广播发送中 (交由后台线程计时 3 秒)...\n");
-
         xTaskNotifyGive(_taskHandle);
     }
 };
