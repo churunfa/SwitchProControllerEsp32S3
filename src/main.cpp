@@ -9,6 +9,7 @@
 #include "graph/Graph.h"
 #include "ble/NativeBLEReader.h"
 #include "ble/SwitchWakeUp.h"
+#include "config/SimpleConfig.h"
 
 NativeBLEReader native_ble_reader;
 
@@ -27,6 +28,10 @@ void setup() {
     // 打印一下文件系统信息，确认是否真的有 9MB
     logPrintf("LittleFS Total: %u bytes\n", LittleFS.totalBytes());
     logPrintf("LittleFS Used: %u bytes\n", LittleFS.usedBytes());
+    
+    // 初始化BLE配置
+    BleConfig::init();
+    
     SwitchProDriver::getInstance();
     GraphExecutor::getInstance();
 

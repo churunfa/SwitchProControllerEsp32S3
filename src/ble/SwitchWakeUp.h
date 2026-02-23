@@ -5,22 +5,23 @@
 #include <BLEDevice.h>
 #include <BLEAdvertising.h>
 #include <esp_mac.h>
+#include <config/SimpleConfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-inline uint8_t DEFAULT_BLE_MAC[6] = {
-    0xE0, 0xEF, 0xBF, 0x2B, 0x5B, 0x1E
-};
-
-inline uint8_t DEFAULT_BLE_DATA[] = {
-    0x02, 0x01, 0x06, 0x1B, 0xFF, 0x53, 0x05, 0x01,
-    0x00, 0x03, 0x7E, 0x05, 0x66, 0x20, 0x00, 0x01,
-    0x81, 0x9B, 0xFD, 0x54, 0x05, 0x48, 0xC8, 0x0F,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-// 现在的长度是纯正的 31 字节，完美符合 BLE 广播极限！
-constexpr size_t WAKEUP_ADV_DATA_LEN = sizeof(DEFAULT_BLE_DATA);
+// inline uint8_t DEFAULT_BLE_MAC[6] = {
+//     0xE0, 0xEF, 0xBF, 0x2B, 0x5B, 0x1E
+// };
+//
+// inline uint8_t DEFAULT_BLE_DATA[] = {
+//     0x02, 0x01, 0x06, 0x1B, 0xFF, 0x53, 0x05, 0x01,
+//     0x00, 0x03, 0x7E, 0x05, 0x66, 0x20, 0x00, 0x01,
+//     0x81, 0x9B, 0xFD, 0x54, 0x05, 0x48, 0xC8, 0x0F,
+//     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+// };
+//
+// // 现在的长度是纯正的 31 字节，完美符合 BLE 广播极限！
+// constexpr size_t WAKEUP_ADV_DATA_LEN = sizeof(DEFAULT_BLE_DATA);
 
 class SwitchWakeUp {
     bool _isWakingUp = false;
@@ -34,9 +35,6 @@ class SwitchWakeUp {
         for (;;) {
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             vTaskDelay(pdMS_TO_TICKS(3000));
-
-            logPrintf("[SwitchWakeUp] 3秒已到，唤醒完毕，恢复小程序连接服务...\n");
-
             BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
             pAdvertising->stop();
 
@@ -55,7 +53,15 @@ public:
     }
 
     void begin() {
-        setSpoofedMAC(DEFAULT_BLE_MAC);
+        // 从配置中获取MAC地址
+        uint8_t currentMac[6];
+        if (BleConfig::getMac(currentMac)) {
+            setSpoofedMAC(currentMac);
+            logPrintf("[SwitchWakeUp] 使用配置的MAC地址\n");
+        } else {
+            logPrintf("[SwitchWakeUp] 无法获取MAC地址配置\n");
+        }
+        
         if (_taskHandle == nullptr) {
             xTaskCreate(wakeUpTask, "WakeUpTask", 2048, this, 1, &_taskHandle);
         }
@@ -67,7 +73,12 @@ public:
 
     // 3. 【修补强转】：把 uint8_t* 强转成 char* 以喂给库函数
     void trigger() {
-        trigger((char*)DEFAULT_BLE_DATA, WAKEUP_ADV_DATA_LEN);
+        // 从配置中获取广播数据
+        uint8_t currentAdvData[31];
+        size_t dataLen;
+        if (BleConfig::getAdvData(currentAdvData, dataLen)) {
+            trigger(reinterpret_cast<char *>(currentAdvData), dataLen);
+        }
     }
 
     void trigger(char *advData, const size_t dataLen) {
