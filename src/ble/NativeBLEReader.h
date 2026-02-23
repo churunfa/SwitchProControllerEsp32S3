@@ -5,14 +5,10 @@
 #ifndef SWITCHPROCONTROLLERESP32S3_NATIVEBLEREADER_H
 #define SWITCHPROCONTROLLERESP32S3_NATIVEBLEREADER_H
 
-#include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
 
 class NativeBLEReader {
-private:
     BLEServer* _pServer = nullptr;
     BLECharacteristic* _pTxChar = nullptr;
     bool _connected = false;
@@ -24,7 +20,7 @@ private:
     class MyServerCallbacks : public BLEServerCallbacks {
         NativeBLEReader* _outer;
     public:
-        MyServerCallbacks(NativeBLEReader* outer) : _outer(outer) {}
+        explicit MyServerCallbacks(NativeBLEReader* outer) : _outer(outer) {}
         void onConnect(BLEServer* pServer) override { _outer->_connected = true; }
         void onDisconnect(BLEServer* pServer) override {
             _outer->_connected = false;
@@ -36,8 +32,7 @@ private:
     class MyCharCallbacks : public BLECharacteristicCallbacks {
         void onWrite(BLECharacteristic* pChar) override {
             // 修正：NimBLE 返回的是 String，直接用 c_str() 打印
-            String value = pChar->getValue();
-            if (value.length() > 0) {
+            if (String value = pChar->getValue(); value.length() > 0) {
                 for (int i = 0; i < value.length(); i++) {
                     ReadStrategyProcess::getInstance().process(value[i]);
                 }
@@ -73,9 +68,9 @@ public:
         pAdv->start();
     }
 
-    bool isConnected() { return _connected; }
+    [[nodiscard]] bool isConnected() const { return _connected; }
 
-    void send(String data) {
+    void send(const String& data) const {
         if (_connected && _pTxChar) {
             _pTxChar->setValue(data.c_str());
             _pTxChar->notify();

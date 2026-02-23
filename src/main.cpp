@@ -8,6 +8,7 @@
 #include "read/ReadStrategyProcess.h"
 #include "graph/Graph.h"
 #include "ble/NativeBLEReader.h"
+#include "ble/SwitchWakeUp.h"
 
 NativeBLEReader native_ble_reader;
 
@@ -31,6 +32,7 @@ void setup() {
 
     pinMode(BOOT_PIN, INPUT_PULLUP);
 
+    SwitchWakeUp::getInstance().begin();
     native_ble_reader.begin("vSwitch Pro Controller");
 }
 
