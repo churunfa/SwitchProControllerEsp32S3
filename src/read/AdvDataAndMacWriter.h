@@ -57,7 +57,7 @@ public:
             }
                     
             // 写入广播数据配置
-            if (advDataLength != 31) {
+            if (advDataLength == 31) {
                 if (!config.setConfig(ConfigType::NS2_WAKE_DATA, advDataBuffer)) {
                     errorMsg = "广播数据配置保存失败";
                     configSuccess = false;
@@ -71,10 +71,11 @@ public:
                     }
                     Serial0.printf("\n");
                 }
+            } else {
                 errorMsg = "广播数据长度异常: " + std::to_string(advDataLength) + " (应为31字节)";
                 configSuccess = false;
             }
-                    
+
             // 验证写入结果
             if (configSuccess) {
                 // 验证配置是否正确保存
@@ -82,7 +83,7 @@ public:
                 std::vector<uint8_t> savedAdvData;
                 bool macVerified = config.getConfig(ConfigType::MAC_ADDRESS, savedMac);
                 bool advDataVerified = (advDataLength == 0) || config.getConfig(ConfigType::NS2_WAKE_DATA, savedAdvData);
-                        
+                logPrintf("AdvDataAndMacWriter: 配置验证结果: macVerified=%d,advDataVerified=%d\n", macVerified, advDataVerified);
                 if (macVerified && advDataVerified) {
                     // 检查数据一致性
                     if (savedMac.size() == 6 && memcmp(savedMac.data(), macAddress, 6) == 0) {
@@ -98,6 +99,11 @@ public:
                         errorMsg = "MAC地址验证失败：保存的MAC地址与原始数据不一致";
                         configSuccess = false;
                     }
+                    logPrintf("AdvDataAndMacWriter: adv data写入成功：");
+                                for(int i = 0; i < advDataLength; i++) {
+                                    logPrintf("%02X,", advDataBuffer[i]);
+                                }
+                                logPrintf("\n");
                 } else {
                     errorMsg = "配置验证失败：无法读取已保存的配置";
                     configSuccess = false;
@@ -112,7 +118,7 @@ public:
                 logPrintf("AdvDataAndMacWriter: 配置写入失败: %s\n", errorMsg.c_str());
                 showRedLed();
             }
-                    
+
         } catch (const std::exception& e) {
             logPrintf("AdvDataAndMacWriter: 配置写入异常: %s\n", e.what());
             showRedLed();

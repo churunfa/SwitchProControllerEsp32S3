@@ -2,6 +2,7 @@
 #include <FS.h>
 #include <LittleFS.h>
 #include <esp_log.h>
+#include <debug/log.h>
 
 static auto TAG = "SimpleConfig";
 
@@ -26,10 +27,9 @@ bool SimpleConfig::initialize() {
         ESP_LOGI(TAG, "Configuration loaded successfully");
         printAllConfigs();
         return true;
-    } else {
-        ESP_LOGW(TAG, "No existing configuration found, starting fresh");
-        return true; // 仍然返回true，因为这是正常情况
     }
+    ESP_LOGW(TAG, "No existing configuration found, starting fresh");
+    return true; // 仍然返回true，因为这是正常情况
 }
 
 bool SimpleConfig::setConfig(ConfigType type, const std::vector<uint8_t>& data) {
@@ -56,15 +56,14 @@ bool SimpleConfig::setConfig(ConfigType type, const String& str) {
 }
 
 bool SimpleConfig::getConfig(ConfigType type, std::vector<uint8_t>& data) const {
-    auto it = configData.configMap.find(type);
-    if (it != configData.configMap.end()) {
+    if (const auto it = configData.configMap.find(type); it != configData.configMap.end()) {
         data = it->second;
         return true;
     }
     return false;
 }
 
-String SimpleConfig::getConfigAsString(ConfigType type) const {
+String SimpleConfig::getConfigAsString(const ConfigType type) const {
     std::vector<uint8_t> data;
     if (getConfig(type, data)) {
         return {reinterpret_cast<const char*>(data.data()), data.size()};
@@ -153,7 +152,7 @@ bool SimpleConfig::loadFromFile() {
         ESP_LOGE(TAG, "Failed to deserialize config data from JSON");
         return false;
     }
-    
+    logPrintf("config=%s\n", buffer.c_str());
     ESP_LOGI(TAG, "Configuration loaded from file successfully");
     return true;
 }
