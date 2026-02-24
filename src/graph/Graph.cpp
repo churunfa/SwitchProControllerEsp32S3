@@ -285,6 +285,12 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
 
 [[noreturn]] void GraphExecutor::loop() {
     while (true) {
+        // 检查连接手柄执行标志
+        if (connect_gamepad_pending.load(std::memory_order_acquire)) {
+            executeConnectGamepad();
+            continue;  // 执行完连接逻辑后继续循环
+        }
+        
         if (!running) {
             delay(1000);
             continue;
@@ -310,10 +316,10 @@ void GraphExecutor::updateExecGraph(Graph graph) {
     writeExecGraph(graph);
 }
 
-void GraphExecutor::switchRunning() {
+void GraphExecutor::switchRunning(bool newRunning) {
     std::lock_guard lock(switch_running_lock);
-    std::thread([this] {
-        running = !running;
+    std::thread([this, newRunning] {
+        running = newRunning;
         if (!running) {
             std::memset(&SwitchGraphExec::serialInput, 0, sizeof(SwitchProReport));
             SwitchGraphExec::setAnalogX(SwitchGraphExec::serialInput.leftStick, SwitchGraphExec::standardAnalog(0));
@@ -330,6 +336,11 @@ void GraphExecutor::switchRunning() {
 }
 
 void GraphExecutor::connectGamepad() {
+    // 设置连接手柄执行标志，在图循环中异步执行
+    connect_gamepad_pending.store(true, std::memory_order_release);
+}
+
+void GraphExecutor::executeConnectGamepad() {
     SwitchProSerialInput serialInput;
     // L + R 按下
     serialInput.inputs.buttonL = true;
@@ -353,4 +364,7 @@ void GraphExecutor::connectGamepad() {
     SwitchProDriver::getInstance().updateInputReport(&serialInput, true);
     SwitchProDriver::getInstance().process(true);
     delay(100);
+    
+    // 清除执行标志
+    connect_gamepad_pending.store(false, std::memory_order_release);
 }

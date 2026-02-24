@@ -10,7 +10,7 @@
 #include "WriteBackReader.h"
 #include "LoopGraphReader.h"
 #include "AdvDataAndMacWriter.h"
-#include "WakeUpTriggerReader.h"
+#include "SimpleOperateReader.h"
 
 class ReadStrategyProcess {
     static constexpr int MAX_STRATEGIES = 5;
@@ -20,7 +20,7 @@ class ReadStrategyProcess {
         strategies[1] = std::make_unique<WriteBackReader>();
         strategies[2] = std::make_unique<LoopGraphReader>();
         strategies[3] = std::make_unique<AdvDataAndMacWriter>();
-        strategies[4] = std::make_unique<WakeUpTriggerReader>();
+        strategies[4] = std::make_unique<SimpleOperateReader>();
         reset();
     }
     uint8_t header[2] = {0xAA, 0x55};

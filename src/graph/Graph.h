@@ -93,6 +93,9 @@ class GraphExecutor {
     std::map<int, std::shared_ptr<GraphNode>> node_map;
     std::map<int, std::shared_ptr<GraphEdge>> edge_map;
     std::map<int, std::vector<std::shared_ptr<GraphEdge>>> out_edge;
+    
+    // 连接手柄执行标志
+    std::atomic<bool> connect_gamepad_pending{false};
 
     GraphExecutor();
     static std::optional<Graph> readExecGraph();
@@ -100,13 +103,14 @@ class GraphExecutor {
     void initGraph();
     [[noreturn]] void loop();
     static Task nodeExecCore(std::shared_ptr<GraphNode> node);
+    void executeConnectGamepad();
     Task nodeExec(std::shared_ptr<GraphNode> node, std::shared_ptr<std::unordered_map<int, int>> in_degrees);
     void exec();
 public:
     std::atomic<bool> running{false};
     void updateExecGraph(Graph graph);
-    void switchRunning();
-    static void connectGamepad();
+    void switchRunning(bool newRunning);
+    void connectGamepad();
     static GraphExecutor& getInstance() {
         static GraphExecutor instance;
         return instance;
