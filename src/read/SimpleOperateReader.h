@@ -27,8 +27,6 @@ public:
     }
 
     void exec() override {
-        logPrintf("SimpleOperateReader: 收到操作命令, type=%d\n", operationType);
-        
         switch (operationType) {
             case 0: // 唤醒操作
                 SwitchWakeUp::getInstance().trigger();
