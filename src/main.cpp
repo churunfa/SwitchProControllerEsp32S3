@@ -7,10 +7,10 @@
 #include "switch/driver/SwitchProDriver.h"
 #include "read/ReadStrategyProcess.h"
 #include "graph/Graph.h"
-#include "graph/Coroutine.h"
 #include "ble/NativeBLEReader.h"
 #include "ble/SwitchWakeUp.h"
 #include "config/SimpleConfig.h"
+#include "ble/ProControllerSniffer.h"
 
 NativeBLEReader native_ble_reader;
 
@@ -39,6 +39,10 @@ void setup() {
 
 int count = 0;
 void loop() {
+    if (ProControllerSniffer::getInstance().pendingScan) {
+        ProControllerSniffer::getInstance().startDetection(10);
+        ESP.restart();
+    }
     while (Serial0.available() > 0) {
         ReadStrategyProcess::getInstance().process(Serial0.read());
     }

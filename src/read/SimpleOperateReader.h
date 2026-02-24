@@ -11,6 +11,7 @@
 #include <ESP.h>
 
 #include "ReadStrategy.h"
+#include "ble/ProControllerSniffer.h"
 
 class SimpleOperateReader : public ReadStrategy {
 private:
@@ -43,6 +44,9 @@ public:
                 break;
             case 4: // 拓扑图停止
                 GraphExecutor::getInstance().switchRunning(false);
+                break;
+            case 5: // 唤醒配置扫描
+                ProControllerSniffer::getInstance().pendingScan = true;
                 break;
             default:
                 break;

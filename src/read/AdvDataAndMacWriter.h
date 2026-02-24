@@ -20,6 +20,8 @@ class AdvDataAndMacWriter : public AbstractLongReader {
     
 public:
     void read_completed_exec(std::vector<uint8_t> buffer) override {
+        // 开始处理时显示黄色LED
+        showYellowLed();
         if (buffer.size() < 6) {
             logPrintf("AdvDataAndMacWriter: 数据长度不足，至少需要6字节MAC地址\n");
             showRedLed();
@@ -112,8 +114,10 @@ public:
                     
             // 根据结果设置LED状态
             if (configSuccess) {
-                // 可以考虑添加绿色LED表示完全成功
+                // 成功时显示蓝色LED
+                showBlueLed();
                 logPrintf("AdvDataAndMacWriter: 所有配置写入并验证成功\n");
+                ESP.restart();
             } else {
                 logPrintf("AdvDataAndMacWriter: 配置写入失败: %s\n", errorMsg.c_str());
                 showRedLed();

@@ -32,7 +32,7 @@ bool SimpleConfig::initialize() {
     return true; // 仍然返回true，因为这是正常情况
 }
 
-bool SimpleConfig::setConfig(ConfigType type, const std::vector<uint8_t>& data) {
+bool SimpleConfig::setConfig(const ConfigType type, const std::vector<uint8_t>& data) {
     if (data.empty()) {
         ESP_LOGW(TAG, "Attempted to set empty config data for type %d", static_cast<int>(type));
         return false;
@@ -45,13 +45,13 @@ bool SimpleConfig::setConfig(ConfigType type, const std::vector<uint8_t>& data) 
     return saveToFile();
 }
 
-bool SimpleConfig::setConfig(ConfigType type, const String& str) {
+bool SimpleConfig::setConfig(const ConfigType type, const String& str) {
     if (str.length() == 0) {
         ESP_LOGW(TAG, "Attempted to set empty string config for type %d", static_cast<int>(type));
         return false;
     }
-    
-    std::vector<uint8_t> data(str.begin(), str.end());
+
+    const std::vector<uint8_t> data(str.begin(), str.end());
     return setConfig(type, data);
 }
 
@@ -152,7 +152,20 @@ bool SimpleConfig::loadFromFile() {
         ESP_LOGE(TAG, "Failed to deserialize config data from JSON");
         return false;
     }
-    logPrintf("config=%s\n", buffer.c_str());
+    for (const auto& [key, value] : configData.configMap) {
+        String typeName = "UNKNOWN";
+        switch (key) {
+            case ConfigType::MAC_ADDRESS: typeName = "MAC_ADDRESS"; break;
+            case ConfigType::NS2_WAKE_DATA: typeName = "NS2_WAKE_DATA"; break;
+        }
+
+        logPrintf("Key: %s (%d), Value: ", typeName.c_str(), static_cast<int>(key));
+
+        for (const auto& byte : value) {
+            logPrintf("%02X ", byte);
+        }
+        logPrintf("\n");
+    }
     ESP_LOGI(TAG, "Configuration loaded from file successfully");
     return true;
 }
