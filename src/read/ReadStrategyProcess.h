@@ -11,9 +11,10 @@
 #include "LoopGraphReader.h"
 #include "AdvDataAndMacWriter.h"
 #include "SimpleOperateReader.h"
+#include "ota/OtaReader.h"
 
 class ReadStrategyProcess {
-    static constexpr int MAX_STRATEGIES = 5;
+    static constexpr int MAX_STRATEGIES = 6;
     std::unique_ptr<ReadStrategy> strategies[MAX_STRATEGIES];
     ReadStrategyProcess() {
         strategies[0] = std::make_unique<SwitchReportReader>();
@@ -21,6 +22,7 @@ class ReadStrategyProcess {
         strategies[2] = std::make_unique<LoopGraphReader>();
         strategies[3] = std::make_unique<AdvDataAndMacWriter>();
         strategies[4] = std::make_unique<SimpleOperateReader>();
+        strategies[5] = std::make_unique<OtaReader>();
         reset();
     }
     uint8_t header[2] = {0xAA, 0x55};
