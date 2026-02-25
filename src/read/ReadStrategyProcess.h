@@ -31,13 +31,16 @@ class ReadStrategyProcess {
     uint8_t curType{};
     uint8_t verifyCheckSum = 0;
 
+    std::mutex reportMtx;
+
+public:
     void reset() {
         readIndex = 0;
         verifyCheckSum = 0;
     }
-
-public:
     void process(const uint8_t inByte) {
+        std::lock_guard lock(reportMtx);
+
         const int curIndex = readIndex;
         readIndex++;
         if (curIndex < 2) {

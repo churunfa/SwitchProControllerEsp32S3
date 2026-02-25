@@ -43,7 +43,10 @@ void loop() {
         ProControllerSniffer::getInstance().startDetection(10);
         ESP.restart();
     }
-    while (Serial0.available() > 0) {
-        ReadStrategyProcess::getInstance().process(Serial0.read());
+    if (!NativeBLEReader::reading) {
+        while (Serial0.available() > 0) {
+            ReadStrategyProcess::getInstance().process(Serial0.read());
+        }
     }
+
 }

@@ -9,6 +9,9 @@
 #include <BLEServer.h>
 
 class NativeBLEReader {
+public:
+    static std::atomic<bool> reading;
+private:
     BLEServer* _pServer = nullptr;
     BLECharacteristic* _pTxChar = nullptr;
     bool _connected = false;
@@ -33,9 +36,17 @@ class NativeBLEReader {
         void onWrite(BLECharacteristic* pChar) override {
             // 修正：NimBLE 返回的是 String，直接用 c_str() 打印
             if (String value = pChar->getValue(); value.length() > 0) {
-                for (int i = 0; i < value.length(); i++) {
-                    ReadStrategyProcess::getInstance().process(value[i]);
+                reading = true;
+                // 强制reset
+                ReadStrategyProcess::getInstance().reset();
+                try {
+                    for (int i = 0; i < value.length(); i++) {
+                        ReadStrategyProcess::getInstance().process(value[i]);
+                    }
+                } catch (...) {
+                    logPrintf("蓝牙数据读取异常\n");
                 }
+                reading = false;
             }
         }
     };
