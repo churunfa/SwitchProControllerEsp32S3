@@ -64,12 +64,10 @@ public:
                         strategy->exec();
                     } catch (const std::system_error& e) {
                         logPrintf("run error, strategy=%d,err=%s\n",curType,e.what());
-                        showRedLed();
                     }
                     resetLed();
                 } else {
                     // 校验失败
-                    showRedLed();
                     logPrintf("run error, strategy=%d,inByte=%d,verifyCheckSum=%d, curIndex=%d,err=校验和校验失败\n",curType, inByte, verifyCheckSum, curIndex);
                 }
                 strategy->reset();
