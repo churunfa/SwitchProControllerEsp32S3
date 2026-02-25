@@ -14,6 +14,8 @@ public:
         // 如果知道文件总大小，填入固件大小；不知道则用 UPDATE_SIZE_UNKNOWN
         if (!Update.begin(firmware_size)) {
             Update.printError(Serial0);
+            showRedLed();
+            ESP.restart();
         } else {
             logPrintf("OTA Update Started\n");
         }
@@ -24,6 +26,8 @@ public:
         if (Update.write(data, len) != len) {
             Update.printError(Serial0);
             logPrintf("写入固件数据失败！\n");
+            showRedLed();
+            ESP.restart();
         }
     }
 
@@ -36,6 +40,8 @@ public:
         } else {
             Update.printError(Serial0);
             logPrintf("OTA 升级失败，请重试！\n");
+            showRedLed();
+            ESP.restart();
         }
     }
 
