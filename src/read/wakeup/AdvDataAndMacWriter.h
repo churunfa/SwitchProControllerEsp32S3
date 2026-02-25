@@ -9,7 +9,7 @@
 #include <debug/log.h>
 #include <debug/led_control.h>
 
-#include "AbstractLongReader.h"
+#include "../AbstractLongReader.h"
 
 class AdvDataAndMacWriter : public AbstractLongReader {
     // 数据格式：前6字节为MAC地址，后面为广播数据

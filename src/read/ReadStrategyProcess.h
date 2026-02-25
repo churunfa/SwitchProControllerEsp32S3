@@ -6,11 +6,11 @@
 #define SWITCHPROCONTROLLERESP32S3_READSTRATEGYPROCESS_H
 
 #include "ReadStrategy.h"
-#include "SwitchReportReader.h"
-#include "WriteBackReader.h"
-#include "LoopGraphReader.h"
-#include "AdvDataAndMacWriter.h"
-#include "SimpleOperateReader.h"
+#include "report/SwitchReportReader.h"
+#include "test/WriteBackReader.h"
+#include "graph/LoopGraphReader.h"
+#include "wakeup/AdvDataAndMacWriter.h"
+#include "operate/SimpleOperateReader.h"
 #include "ota/OtaReader.h"
 
 class ReadStrategyProcess {

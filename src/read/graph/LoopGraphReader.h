@@ -8,7 +8,7 @@
 #include <graph/Graph.h>
 #include <debug/log.h>
 
-#include "AbstractLongReader.h"
+#include "../AbstractLongReader.h"
 
 class LoopGraphReader : public AbstractLongReader {
     Graph graph;

@@ -5,7 +5,7 @@
 #ifndef SWITCHPROCONTROLLERESP32S3_WRITEBACKREADER_H
 #define SWITCHPROCONTROLLERESP32S3_WRITEBACKREADER_H
 
-#include "ReadStrategy.h"
+#include "../ReadStrategy.h"
 
 class WriteBackReader : public ReadStrategy {
     uint8_t buffer[45] = {};

@@ -10,7 +10,7 @@
 #include <debug/led_control.h>
 #include <ESP.h>
 
-#include "ReadStrategy.h"
+#include "../ReadStrategy.h"
 #include "ble/ProControllerSniffer.h"
 
 class SimpleOperateReader : public ReadStrategy {

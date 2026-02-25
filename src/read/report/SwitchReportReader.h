@@ -7,7 +7,7 @@
 
 #include <graph/Graph.h>
 
-#include "ReadStrategy.h"
+#include "../ReadStrategy.h"
 
 class SwitchReportReader : public ReadStrategy {
     SwitchProSerialInput serialInput = {};
