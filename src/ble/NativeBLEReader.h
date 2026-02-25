@@ -10,7 +10,7 @@
 
 class NativeBLEReader {
 public:
-    static std::atomic<bool> reading;
+    inline static std::atomic<bool> reading{false};
 private:
     BLEServer* _pServer = nullptr;
     BLECharacteristic* _pTxChar = nullptr;
