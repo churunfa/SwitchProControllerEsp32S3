@@ -69,7 +69,7 @@ public:
 
         BLECharacteristic* pRxChar = pService->createCharacteristic(
             RX_UUID,
-            BLECharacteristic::PROPERTY_WRITE
+            BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
         );
         pRxChar->setCallbacks(new MyCharCallbacks());
 
