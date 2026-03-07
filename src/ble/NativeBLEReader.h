@@ -36,7 +36,10 @@ private:
         NativeBLEReader* _outer;
     public:
         explicit MyServerCallbacks(NativeBLEReader* outer) : _outer(outer) {}
-        void onConnect(BLEServer* pServer) override { _outer->_connected = true; }
+        void onConnect(BLEServer* pServer) override {
+            _outer->_connected = true;
+            pServer->requestConnParams(pServer->getConnId(), 0x06, 0x0A, 0, 400);
+        }
         void onDisconnect(BLEServer* pServer) override {
             _outer->_connected = false;
             // NimBLE 风格的自动广播处理通常在外部或通过 startAdvertising
@@ -85,8 +88,28 @@ public:
         pRxChar->setCallbacks(new MyCharCallbacks());
 
         pService->start();
+
         BLEAdvertising* pAdv = BLEDevice::getAdvertising();
-        pAdv->addServiceUUID(SERVICE_UUID);
+
+        // 1. 创建显式的广播数据
+        BLEAdvertisementData advData;
+        // 必须设置 Flags: 0x06 代表 General Discoverable + BR/EDR Not Supported
+        advData.setFlags(0x06);
+        // 将 UUID 放入主广播包
+        advData.setCompleteServices(BLEUUID(SERVICE_UUID));
+        pAdv->setAdvertisementData(advData);
+
+        // 2. 将设备名称放入扫描响应包 (Scan Response)
+        // 这样可以确保主广播包不超载，同时 Windows 能通过扫描请求拿到名字
+        BLEAdvertisementData scanResponseData;
+        scanResponseData.setName(deviceName);
+        pAdv->setScanResponseData(scanResponseData);
+
+        // 3. 增强可见性的参数设置
+        pAdv->setScanResponse(true);
+        pAdv->setMinPreferred(0x06);  // 优化连接参数，有助于 iOS/Windows 快速识别
+        pAdv->setMaxPreferred(0x12);
+
         pAdv->start();
     }
 
