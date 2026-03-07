@@ -7,21 +7,21 @@
 #include <BLEAdvertisedDevice.h>
 #include <config/SimpleConfig.h>
 #include "debug/led_control.h"
+#include "debug/log.h"
 
 class ProControllerSniffer {
-private:
     ProControllerSniffer() = default;
 
     class SnifferCallbacks : public BLEAdvertisedDeviceCallbacks {
         void onResult(BLEAdvertisedDevice advertisedDevice) override {
             uint8_t* payload = advertisedDevice.getPayload();
-            size_t payloadLength = advertisedDevice.getPayloadLength();
+            const size_t payloadLength = advertisedDevice.getPayloadLength();
 
             // 只要扫到设备就打个点，确认扫描器活着
-            logPrintf(".");
+            NotifyMessage::send(LOG, ".");
 
             bool isNintendoWakeUp = false;
-            for(int i = 0; i < (int)payloadLength - 2; i++) {
+            for(int i = 0; i < static_cast<int>(payloadLength) - 2; i++) {
                 if(payload[i] == 0xFF && payload[i+1] == 0x53 && payload[i+2] == 0x05) {
                     isNintendoWakeUp = true;
                     break;
@@ -29,10 +29,10 @@ private:
             }
 
             if (isNintendoWakeUp) {
-                logPrintf("\n🎯 [MATCH] 抓到手柄包！ MAC: %s\n", advertisedDevice.getAddress().toString().c_str());
+                NotifyMessage::send(LOG, std::format("\n🎯 [MATCH] 抓到手柄包！ MAC: {}\n", advertisedDevice.getAddress().toString().c_str()));
 
                 // 1. 拿到原始字节 (1F 5B 2B BF EF E0)
-                const uint8_t* nativeMac = reinterpret_cast<const uint8_t*>(advertisedDevice.getAddress().getNative());
+                const auto nativeMac = reinterpret_cast<const uint8_t*>(advertisedDevice.getAddress().getNative());
 
                 // 2. 反转顺序存储到临时数组 (变为 E0 EF BF 2B 5B 1F)
                 uint8_t spoofedMac[6];
@@ -51,17 +51,16 @@ private:
                     }
                 }
 
-                // 打印一下确认顺序是否正确
-                logPrintf("📝 修正并计算后的 MAC: %02X-%02X-%02X-%02X-%02X-%02X\n",
-                          spoofedMac[0], spoofedMac[1], spoofedMac[2],
-                          spoofedMac[3], spoofedMac[4], spoofedMac[5]);
+                NotifyMessage::send(LOG, string_printf("📝 修正并计算后的 MAC: %02X-%02X-%02X-%02X-%02X-%02X\n",
+                        spoofedMac[0], spoofedMac[1], spoofedMac[2],
+                        spoofedMac[3], spoofedMac[4], spoofedMac[5]));
 
                 // 4. 保存到配置
                 auto& config = SimpleConfig::getInstance();
                 config.setConfig(ConfigType::MAC_ADDRESS, std::vector<uint8_t>(spoofedMac, spoofedMac + 6));
                 config.setConfig(ConfigType::NS2_WAKE_DATA, std::vector<uint8_t>(payload, payload + payloadLength));
                 showBlueLed();
-                logPrintf("✅ 自动配置完成，3秒后重启系统...\n");
+                NotifyMessage::send(LOG, "✅ 自动配置完成，3秒后重启系统...\n");
 
                 BLEDevice::getScan()->stop();
                 delay(3000);
@@ -77,21 +76,19 @@ public:
         return instance;
     }
 
-    void startDetection(uint32_t durationSec = 15) {
-            logPrintf("\n[ProControllerSniffer] 正在切换至扫描模式...\n");
+    void startDetection(const uint32_t durationSec = 15) {
+            NotifyMessage::send(LOG, "\n[ProControllerSniffer] 正在切换至扫描模式...\n");
 
             // 1. 停止广播，防止新的连接进来
             BLEDevice::getAdvertising()->stop();
 
             // 2. 获取服务器实例并优雅地断开所有已连接的手机
-            BLEServer* pServer = BLEDevice::getServer();
-            if (pServer) {
+            if (BLEServer* pServer = BLEDevice::getServer()) {
                 // 传入 false 是因为我们是 Server，需要获取连接到我们的 Client 列表
-                std::map<uint16_t, conn_status_t> peerList = pServer->getPeerDevices(false);
 
-                if (!peerList.empty()) {
-                    logPrintf("检测到 %d 个活动连接，正在断开...\n", peerList.size());
-                    for (auto const& [connId, status] : peerList) {
+                if (std::map<uint16_t, conn_status_t> peerList = pServer->getPeerDevices(false); !peerList.empty()) {
+                    NotifyMessage::send(LOG, std::format("检测到 {} 个活动连接，正在断开...\n", peerList.size()));
+                    for (const auto &connId: peerList | std::views::keys) {
                         pServer->disconnect(connId);
                     }
                     // 重要：给手机端和协议栈 500ms 时间处理“分手”事务，防止内存野指针
@@ -111,12 +108,12 @@ public:
             pBLEScan->setWindow(120);
 
             showBlueLed();
-            logPrintf("👉 扫描启动 (持续 %d 秒)，请按下手柄 Home 键...\n", durationSec);
+            NotifyMessage::send(LOG, std::format("👉 扫描启动 (持续 {} 秒)，请按下手柄 Home 键...\n", durationSec));
 
             // 4. 启动扫描 (由于没有 deinit，这里不会 Panic)
             pBLEScan->start(durationSec, false);
 
-            logPrintf("\n[ProControllerSniffer] 扫描周期结束。\n");
+            NotifyMessage::send(LOG, "\n[ProControllerSniffer] 扫描周期结束。\n");
             showRedLed();
             pBLEScan->clearResults();
 

@@ -12,6 +12,7 @@
 #include "wakeup/AdvDataAndMacWriter.h"
 #include "operate/SimpleOperateReader.h"
 #include "ota/OtaReader.h"
+#include "debug/log.h"
 
 class ReadStrategyProcess {
     static constexpr int MAX_STRATEGIES = 6;
@@ -46,7 +47,7 @@ public:
         if (curIndex < 2) {
             // 没读到头的话从头重读
             if (inByte != header[curIndex]) {
-                logPrintf("read error,inByte=%02x,header=%02x,err=header读取类型异常\n", inByte, header[curIndex]);
+                NotifyMessage::send(LOG, string_printf("read error,inByte=%02x,header=%02x,err=header读取类型异常\n", inByte, header[curIndex]));
                 reset();
             }
         } else if (curIndex == 2) {
@@ -68,12 +69,12 @@ public:
                     try {
                         strategy->exec();
                     } catch (const std::system_error& e) {
-                        logPrintf("run error, strategy=%d,err=%s\n",curType,e.what());
+                        NotifyMessage::send(LOG, std::format("run error, strategy={},err={}\n",curType,e.what()));
                     }
                     resetLed();
                 } else {
                     // 校验失败
-                    logPrintf("run error, strategy=%d,inByte=%d,verifyCheckSum=%d, curIndex=%d,err=校验和校验失败\n",curType, inByte, verifyCheckSum, curIndex);
+                    NotifyMessage::send(LOG, string_printf("run error, strategy=%d,inByte=%02x,verifyCheckSum=%02x, curIndex={},err=校验和校验失败\n",curType, inByte, verifyCheckSum, curIndex));
                 }
                 strategy->reset();
                 reset();

@@ -7,10 +7,20 @@
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
+#include <atomic>
+#include "debug/log.h"
+#include "read/ReadStrategyProcess.h"
 
 class NativeBLEReader {
 public:
     inline static std::atomic<bool> reading{false};
+    static NativeBLEReader& getInstance() {
+        static NativeBLEReader instance;
+        return instance;
+    }
+    // 禁止拷贝
+    NativeBLEReader(const NativeBLEReader&) = delete;
+    NativeBLEReader& operator=(const NativeBLEReader&) = delete;
 private:
     BLEServer* _pServer = nullptr;
     BLECharacteristic* _pTxChar = nullptr;
@@ -19,6 +29,8 @@ private:
     const char* SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     const char* RX_UUID      = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
     const char* TX_UUID      = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+
+    NativeBLEReader() = default;
 
     class MyServerCallbacks : public BLEServerCallbacks {
         NativeBLEReader* _outer;
@@ -34,14 +46,13 @@ private:
 
     class MyCharCallbacks : public BLECharacteristicCallbacks {
         void onWrite(BLECharacteristic* pChar) override {
-            // 修正：NimBLE 返回的是 String，直接用 c_str() 打印
-            if (String value = pChar->getValue(); value.length() > 0) {
+            if (pChar->getLength() > 0) {
                 reading = true;
                 // 强制reset
                 ReadStrategyProcess::getInstance().reset();
                 try {
-                    for (int i = 0; i < value.length(); i++) {
-                        ReadStrategyProcess::getInstance().process(value[i]);
+                    for (int i = 0; i < pChar->getLength(); i++) {
+                        ReadStrategyProcess::getInstance().process(pChar->getData()[i]);
                     }
                 } catch (...) {
                     logPrintf("蓝牙数据读取异常\n");
@@ -81,9 +92,10 @@ public:
 
     [[nodiscard]] bool isConnected() const { return _connected; }
 
-    void send(const String& data) const {
-        if (_connected && _pTxChar) {
-            _pTxChar->setValue(data.c_str());
+    void send(const std::vector<uint8_t>& data) const {
+        if (_connected && _pTxChar && !data.empty()) {
+            // 使用底层的 uint8_t* 指针和长度
+            _pTxChar->setValue(data.data(), data.size());
             _pTxChar->notify();
         }
     }

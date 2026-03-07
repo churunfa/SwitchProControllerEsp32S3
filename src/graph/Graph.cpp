@@ -4,6 +4,8 @@
 
 #include "Graph.h"
 
+#include <notify/NotifyMessage.h>
+
 namespace SwitchGraphExec {
     SwitchProSerialInput serialInput;
     unsigned long imu_last_collect_time = 0;
@@ -142,7 +144,7 @@ void GraphNode::runOpt(const std::string &base_operate, const std::vector<int> &
 void GraphNode::batchRunOpt() {
     const auto size = base_operates.size();
     if (size != params.size() || size != resets.size()) {
-        logPrintf("参数个数不匹配\n");
+        NotifyMessage::send(LOG, "参数个数不匹配\n");
         return;
     }
     for (int i = 0; i < size; ++i) {
@@ -223,7 +225,7 @@ GraphExecutor::GraphExecutor() {
 std::optional<Graph> GraphExecutor::readExecGraph() {
     File file = LittleFS.open("/exec_graph.dat", "r");
     if (!file) {
-        logPrintf("Failed to open file for reading\n");
+        NotifyMessage::send(LOG, "Failed to open file for reading\n");
         return std::nullopt;
     }
 
@@ -231,11 +233,11 @@ std::optional<Graph> GraphExecutor::readExecGraph() {
     std::string buffer(fileSize, '\0');
     file.read(reinterpret_cast<uint8_t*>(buffer.data()), fileSize);
     file.close();
-    logPrintf("循环拓扑图：%s\n", buffer.data());
+    NotifyMessage::send(LOG, std::format("循环拓扑图：{}\n", buffer.data()));
     // 使用 Glaze 反序列化
     Graph graph;
     if (glz::read_json(graph, buffer)) {
-        logPrintf("Failed to deserialize graph\n");
+        NotifyMessage::send(LOG, "Failed to deserialize graph\n");
         return std::nullopt; // 返回空图
     }
 
@@ -270,13 +272,13 @@ void GraphExecutor::writeExecGraph(Graph& graph) {
     // 使用 Glaze 序列化
     std::string buffer;
     if (glz::write_json(graph, buffer)) {
-        logPrintf("Failed to serialize graph\n");
+        NotifyMessage::send(LOG, "Failed to serialize graph\n");
         return;
     }
 
     File file = LittleFS.open("/exec_graph.dat", "w");
     if (!file) {
-        logPrintf("Failed to open file for writing\n");
+        NotifyMessage::send(LOG, "Failed to open file for writing\n");
         return;
     }
     file.write(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size());
@@ -314,6 +316,14 @@ void GraphExecutor::updateExecGraph(Graph graph) {
     exec_graph = graph;
     initGraph();
     writeExecGraph(graph);
+}
+
+void GraphExecutor::runOnce() {
+    std::lock_guard lock1(switch_running_lock);
+    std::lock_guard lock2(graphLock);
+    if (exec_graph) {
+        exec();
+    }
 }
 
 void GraphExecutor::switchRunning(bool newRunning) {

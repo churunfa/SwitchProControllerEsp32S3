@@ -12,6 +12,7 @@
 
 #include "../ReadStrategy.h"
 #include "ble/ProControllerSniffer.h"
+#include "notify/NotifyMessage.h"
 
 class SimpleOperateReader : public ReadStrategy {
 private:
@@ -45,6 +46,11 @@ public:
                 break;
             case 5: // 唤醒配置扫描
                 ProControllerSniffer::getInstance().pendingScan = true;
+                break;
+            case 6: // 版本号
+                NotifyMessage::send(VERSION, "1.1.0");
+            case 7: // 执行一次拓扑图
+                GraphExecutor::getInstance().runOnce();
                 break;
             default:
                 break;

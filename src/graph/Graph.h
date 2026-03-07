@@ -109,6 +109,7 @@ class GraphExecutor {
 public:
     std::atomic<bool> running{false};
     void updateExecGraph(Graph graph);
+    void runOnce();
     void switchRunning(bool newRunning);
     void connectGamepad();
     static GraphExecutor& getInstance() {

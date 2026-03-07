@@ -17,7 +17,7 @@ public:
             showRedLed();
             ESP.restart();
         } else {
-            logPrintf("OTA Update Started\n");
+            NotifyMessage::send(LOG, "OTA Update Started\n");
         }
     }
 
@@ -25,7 +25,7 @@ public:
     static void writeOTAData(uint8_t *data, const size_t len) {
         if (Update.write(data, len) != len) {
             Update.printError(Serial0);
-            logPrintf("写入固件数据失败！\n");
+            NotifyMessage::send(LOG, "写入固件数据失败！\n");
             showRedLed();
             ESP.restart();
         }
@@ -35,11 +35,11 @@ public:
     static void finishOTA() {
         // true 表示结束并尝试校验更新
         if (Update.end(true)) {
-            logPrintf("OTA 升级成功！即将重启...\n");
+            NotifyMessage::send(LOG, "OTA 升级成功！即将重启...\n");
             ESP.restart(); // 重启并进入新固件
         } else {
             Update.printError(Serial0);
-            logPrintf("OTA 升级失败，请重试！\n");
+            NotifyMessage::send(LOG, "OTA 升级失败，请重试！\n");
             showRedLed();
             ESP.restart();
         }

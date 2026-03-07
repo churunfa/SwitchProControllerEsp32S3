@@ -7,6 +7,7 @@
 
 #include <graph/Graph.h>
 #include <debug/log.h>
+#include <notify/NotifyMessage.h>
 
 #include "../AbstractLongReader.h"
 
@@ -15,11 +16,10 @@ class LoopGraphReader : public AbstractLongReader {
 public:
     void read_completed_exec(std::vector<uint8_t> buffer) override {
         if (glz::read_json(graph, buffer)) {
-            logPrintf("Failed to serialize graph\n");
+            NotifyMessage::send(LOG, "Failed to serialize graph\n");
             return;
         }
-        
-        logPrintf("json=%s\n", buffer.data());
+        NotifyMessage::send(LOG, std::format("json={}", std::string(buffer.begin(), buffer.end())));
         GraphExecutor::getInstance().updateExecGraph(graph);
     }
 };

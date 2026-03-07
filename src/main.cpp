@@ -12,8 +12,6 @@
 #include "config/SimpleConfig.h"
 #include "ble/ProControllerSniffer.h"
 
-NativeBLEReader native_ble_reader;
-
 void setup() {
     Serial0.setRxBufferSize(8192);
     Serial0.begin(3000000);
@@ -34,7 +32,7 @@ void setup() {
     GraphExecutor::getInstance();
 
     SwitchWakeUp::getInstance().begin();
-    native_ble_reader.begin("vSwitch Pro Controller");
+    NativeBLEReader::getInstance().begin("vSwitch Pro Controller");
 }
 
 int count = 0;

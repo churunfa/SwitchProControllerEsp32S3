@@ -10,25 +10,23 @@
 #include <freertos/task.h>
 
 class SwitchWakeUp {
-private:
     volatile bool _isWakingUp = false;
     TaskHandle_t _taskHandle = nullptr;
     bool _hasValidConfig = false;
 
-    uint8_t _bleMac[6];
+    uint8_t _bleMac[6]{};
     std::vector<uint8_t> _bleData;
     size_t _advDataLen;
 
     SwitchWakeUp() {
-        auto& config = SimpleConfig::getInstance();
+        const auto& config = SimpleConfig::getInstance();
         std::vector<uint8_t> macData;
         if (config.getConfig(ConfigType::MAC_ADDRESS, macData) && macData.size() == 6) {
             memcpy(_bleMac, macData.data(), 6);
             _hasValidConfig = true;
         }
 
-        std::vector<uint8_t> advData;
-        if (config.getConfig(ConfigType::NS2_WAKE_DATA, advData)) {
+        if (std::vector<uint8_t> advData; config.getConfig(ConfigType::NS2_WAKE_DATA, advData)) {
             if (!advData.empty() && advData.size() <= 31) {
                 _bleData = std::move(advData);
                 _advDataLen = _bleData.size();
@@ -69,7 +67,11 @@ public:
 
     void begin() {
         if (!_hasValidConfig) return;
-
+        logPrintf("mac地址:");
+        for (const uint8_t ble_mac : _bleMac) {
+            logPrintf("%02x,", ble_mac);
+        }
+        logPrintf("\n");
         setSpoofedMAC(_bleMac);
         if (_taskHandle == nullptr) {
             // 提升栈大小到 4096 避免崩溃

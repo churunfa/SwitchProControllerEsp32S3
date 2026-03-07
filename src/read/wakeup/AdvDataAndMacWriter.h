@@ -8,7 +8,6 @@
 #include <config/SimpleConfig.h>
 #include <debug/log.h>
 #include <debug/led_control.h>
-
 #include "../AbstractLongReader.h"
 
 class AdvDataAndMacWriter : public AbstractLongReader {
@@ -23,7 +22,7 @@ public:
         // 开始处理时显示黄色LED
         showYellowLed();
         if (buffer.size() < 6) {
-            logPrintf("AdvDataAndMacWriter: 数据长度不足，至少需要6字节MAC地址\n");
+            NotifyMessage::send(LOG, "AdvDataAndMacWriter: 数据长度不足，至少需要6字节MAC地址\n");
             showRedLed();
             return;
         }
@@ -53,9 +52,9 @@ public:
                 errorMsg = "MAC地址配置保存失败";
                 configSuccess = false;
             } else {
-                logPrintf("AdvDataAndMacWriter: MAC地址写入成功: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                NotifyMessage::send(LOG, string_printf("AdvDataAndMacWriter: MAC地址写入成功: %02X:%02X:%02X:%02X:%02X:%02X\n",
                          macAddress[0], macAddress[1], macAddress[2], 
-                         macAddress[3], macAddress[4], macAddress[5]);
+                         macAddress[3], macAddress[4], macAddress[5]));
             }
                     
             // 写入广播数据配置
@@ -64,14 +63,14 @@ public:
                     errorMsg = "广播数据配置保存失败";
                     configSuccess = false;
                 } else {
-                    logPrintf("AdvDataAndMacWriter: 广播数据写入成功，长度: %d\n", advDataLength);
+                    NotifyMessage::send(LOG, std::format("AdvDataAndMacWriter: 广播数据写入成功，长度: {}\n", advDataLength));
 
                     // 打印广播数据内容
-                    Serial0.printf("AdvData内容: ");
+                    NotifyMessage::send(LOG, "AdvData内容: ");
                     for (int i = 0; i < advDataLength; i++) {
-                        Serial0.printf("%02X ", advDataBuffer[i]);
+                        NotifyMessage::send(LOG, string_printf("%02X ", advDataBuffer[i]));
                     }
-                    Serial0.printf("\n");
+                    NotifyMessage::send(LOG, "\n");
                 }
             } else {
                 errorMsg = "广播数据长度异常: " + std::to_string(advDataLength) + " (应为31字节)";
@@ -85,13 +84,13 @@ public:
                 std::vector<uint8_t> savedAdvData;
                 bool macVerified = config.getConfig(ConfigType::MAC_ADDRESS, savedMac);
                 bool advDataVerified = (advDataLength == 0) || config.getConfig(ConfigType::NS2_WAKE_DATA, savedAdvData);
-                logPrintf("AdvDataAndMacWriter: 配置验证结果: macVerified=%d,advDataVerified=%d\n", macVerified, advDataVerified);
+                NotifyMessage::send(LOG, std::format("AdvDataAndMacWriter: 配置验证结果: macVerified={},advDataVerified={}\n", macVerified, advDataVerified));
                 if (macVerified && advDataVerified) {
                     // 检查数据一致性
                     if (savedMac.size() == 6 && memcmp(savedMac.data(), macAddress, 6) == 0) {
                         if (advDataLength == 0 || (savedAdvData.size() == advDataLength && 
                             memcmp(savedAdvData.data(), advDataBuffer.data(), advDataLength) == 0)) {
-                            logPrintf("AdvDataAndMacWriter: 配置验证成功，所有数据已正确保存\n");
+                            NotifyMessage::send(LOG, "AdvDataAndMacWriter: 配置验证成功，所有数据已正确保存\n");
                             // 显示成功状态（可以考虑用不同颜色的LED表示成功）
                         } else {
                             errorMsg = "配置数据验证失败：保存的数据与原始数据不一致";
@@ -101,11 +100,11 @@ public:
                         errorMsg = "MAC地址验证失败：保存的MAC地址与原始数据不一致";
                         configSuccess = false;
                     }
-                    logPrintf("AdvDataAndMacWriter: adv data写入成功：");
-                                for(int i = 0; i < advDataLength; i++) {
-                                    logPrintf("%02X,", advDataBuffer[i]);
-                                }
-                                logPrintf("\n");
+                    NotifyMessage::send(LOG, "AdvDataAndMacWriter: adv data写入成功：");
+                    for(int i = 0; i < advDataLength; i++) {
+                        NotifyMessage::send(LOG, string_printf("%02X,", advDataBuffer[i]));
+                    }
+                    logPrintf("\n");
                 } else {
                     errorMsg = "配置验证失败：无法读取已保存的配置";
                     configSuccess = false;
@@ -116,18 +115,18 @@ public:
             if (configSuccess) {
                 // 成功时显示蓝色LED
                 showBlueLed();
-                logPrintf("AdvDataAndMacWriter: 所有配置写入并验证成功\n");
+                NotifyMessage::send(LOG, "AdvDataAndMacWriter: 所有配置写入并验证成功\n");
                 ESP.restart();
             } else {
-                logPrintf("AdvDataAndMacWriter: 配置写入失败: %s\n", errorMsg.c_str());
+                NotifyMessage::send(LOG, std::format("AdvDataAndMacWriter: 配置写入失败: {}\n", errorMsg));
                 showRedLed();
             }
 
         } catch (const std::exception& e) {
-            logPrintf("AdvDataAndMacWriter: 配置写入异常: %s\n", e.what());
+            NotifyMessage::send(LOG, std::format("AdvDataAndMacWriter: 配置写入异常: {}\n", e.what()));
             showRedLed();
         } catch (...) {
-            logPrintf("AdvDataAndMacWriter: 配置写入发生未知异常\n");
+            NotifyMessage::send(LOG, "AdvDataAndMacWriter: 配置写入发生未知异常\n");
             showRedLed();
         }
     }
