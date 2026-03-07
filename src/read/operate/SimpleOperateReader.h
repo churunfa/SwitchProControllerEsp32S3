@@ -49,6 +49,7 @@ public:
                 break;
             case 6: // 版本号
                 NotifyMessage::send(VERSION, "1.1.0");
+                break;
             case 7: // 执行一次拓扑图
                 GraphExecutor::getInstance().runOnce();
                 break;
